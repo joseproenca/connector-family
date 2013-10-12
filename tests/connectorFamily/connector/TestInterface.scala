@@ -5,7 +5,7 @@ import org.junit.Assert._
 
 class TestInterface {
 
-	@Test def ++() {
+	@Test def SimplifyAndPrint() {
 		val i1 = Interface(List(3,-2,-3,2))
 		val i2 = Interface(1,1,1,-5,2)
 		

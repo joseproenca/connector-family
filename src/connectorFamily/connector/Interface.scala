@@ -14,28 +14,52 @@ class Interface {
    */
   def get = interf
   
+//  /**
+//   * Calculates this x other, and updates the current interface
+//   */
+//  def ++=(other:Interface) = (interf,other.get) match {
+//  	case (Nil,x) => interf = x
+//  	case (x,Nil) => interf = x
+//  	case (_, x::xs) =>
+//  		if (interf.last>0 == x>0)
+//  		  interf =  interf.init ::: List(interf.last + x) ::: xs
+//  		else
+//  			interf = interf ::: other.get
+//  } 
+//  
+//  /**
+//   * Calculates this x other 
+//   */
+//  def ++(other:Interface): Interface = { 
+//  	val v = new Interface()
+//  	v ++= this
+//  	v ++= other
+//  	v
+//  }
+
   /**
-   * Calculates this x other, and updates the current interface
+   * Calculates this x other. Assumes both are normalised. 
    */
-  def ++=(other:Interface) = (interf,other.get) match {
-  	case (Nil,x) => interf = x
-  	case (x,Nil) => interf = x
-  	case (_, x::xs) =>
-  		if (interf.last>0 == x>0)
-  		  interf =  interf.init ::: List(interf.last + x) ::: xs
-  		else
-  			interf = interf ::: other.get
+  def ++(other:Interface): Interface = (interf,other.get) match { 
+    case (Nil,x) => new Interface{interf = x}
+    case (x,Nil) => new Interface{interf = x}
+    case (i, x::xs) =>
+      if (i.last>0 == x>0)
+        new Interface{interf = i.init ::: List(i.last + x) ::: xs}
+      else
+        new Interface{interf = i::: other.get}
   } 
   
   /**
-   * Calculates this x other 
+   * Inverts an interface.
    */
-  def ++(other:Interface): Interface = { 
-  	val v = new Interface()
-  	v ++= this
-  	v ++= other
-  	v
+  def inv: Interface = {
+  	val i = interf
+  	new Interface{
+  		interf = i.map(_*(-1))
+  	}
   }
+
   
   override def toString(): String = interf.mkString("[",",","]")
   override def equals(other: Any) = other match {
@@ -45,14 +69,17 @@ class Interface {
   override def hashCode = interf.hashCode
 }
 
-
+/**
+ * Used to create an interface, after normalising the list.
+ * E.g., [0,1,2,-4,3,2] becomes [3,-4,5] (which means 3 x 4* x 5 in the paper).
+ */
 object Interface {
 	def apply(a:Int*): Interface = apply(a.toList)
 	
 	def apply(a:Iterable[Int]): Interface = {
 		if (a.isEmpty) new Interface
 		else {
-			val res = new Interface
+			var res = new Interface
 			for (x <- a) {
 				if (x!=0)
 					res ++= new Interface { interf = List(x)}
