@@ -42,9 +42,9 @@ class TestFeatureModel {
 
     assertEquals(mergerFM1.toString,
   			"FeatureModel(FID(Merger),AllOf(List("+
-  			    "FeatureModel(FID(Simple),EmptyGroup,Attrs(List()),True), "+
-  			    "FeatureModel(FID(MaxMerger),EmptyGroup,Attrs(List()),True))),"+
-  			  "Attrs(WrappedArray((AIDU(size),IntAttrBounded(1,10)))),True)")  
+  			    "FeatureModel(FID(Simple),EmptyGroup,Attrs(List()),WrappedArray()), "+
+  			    "FeatureModel(FID(MaxMerger),EmptyGroup,Attrs(List()),WrappedArray()))),"+
+  			  "Attrs(WrappedArray((AIDU(size),IntAttrBounded(1,10)))),WrappedArray())")  
   }
 
   @Test def equalExamples{

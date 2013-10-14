@@ -44,9 +44,9 @@ case class IntAttrSet(s:Iterable[Int]) extends AttrRange
 //// Builders for feature models and cardinalities ////
 object FeatureModel {
   def apply(name:String): FeatureModel =
-  	FeatureModel(FID(name),EmptyGroup,Attrs(),True) 
+  	FeatureModel(FID(name),EmptyGroup,Attrs()) 
   def apply(name:String,gr:Group): FeatureModel =
-    FeatureModel(FID(name),gr,Attrs(),True) 
+    FeatureModel(FID(name),gr,Attrs()) 
 //  def apply(fid:FID,gr:Group,at:Attrs): FeatureModel =
 //    FeatureModel(fid,gr,at,True) 
 }

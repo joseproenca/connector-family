@@ -69,14 +69,5 @@ case class NotEqExp(left:Term,right:Term) extends EqualityExpr ;
 //// Variables ////
 case class FIDExp(fid:FID)  extends Exp
 case class AIDExp(aid:AID)  extends Exp
-case class AIDTerm(aid:AID) extends Term 
-
-
-//// TESTING ////
-object AttrConstr extends App {
-    import Utils._
-    
-    println("my constraint: - "+
-    		(True && ("A" --> False) || !(4 >== "attr") || ("attr" <== 6)))
-}
-
+case class AIDTerm(aid:AID) extends Term
+//TODO: maybe add FIDTerm (features as terms) and qualified features.

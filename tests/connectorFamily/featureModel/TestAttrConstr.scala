@@ -8,6 +8,9 @@ class TestAttrConstr {
     
   val c1 = (True && ("A" --> False) || !(4 >== "attr") || ("attr" <== 6))
   
+//  val c2 = ("Merger","size") % 2 === 0
+//  println(c2)
+  
   //// This test will fail as soon as the structure changes.
   @Test def printConstr {
   	assertEquals(c1.toString,

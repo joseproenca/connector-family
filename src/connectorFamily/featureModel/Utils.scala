@@ -8,11 +8,12 @@ object Utils {
       new ArrowAssoc(AIDU(str))
 
   implicit def str2AIDTerm(str:String): AIDTerm = AIDTerm(AIDU(str))
+//  implicit def str2AIDTerm(str:String): AIDTerm = AIDTerm(AIDU(str))
   implicit def str2FeatTerm(str:String): FIDExp = FIDExp(FID(str))
   implicit def int2IntVal(n:Int): IntVal = IntVal(n)
   
   implicit def range2attrRange(r:Range): AttrRange =
-	if (r.step == 1) IntAttrBounded(r.start,r.end)
-	else IntAttrSet(r.toIterable)
+    if (r.step == 1) IntAttrBounded(r.start,r.end)
+    else IntAttrSet(r.toIterable)
 
 }
