@@ -7,7 +7,7 @@ PRECEDENCE of infix operators:
 -----
 letter other
 |
-&
+^
 &
 ! =?
 < >
