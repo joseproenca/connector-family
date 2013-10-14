@@ -12,9 +12,10 @@ object Examples {
 	private def create(in:Interface,out:Interface,str:String) =
 		new Connector(in,out,SimpleRep(str))
 	
-  val sync = create(Interface(1),Interface(1),"sync")
-  val lossy = create(Interface(1),Interface(1),"lossy")
-  val fifo= create(Interface(1),Interface(1),"fifo")
+  val sync   = create(Interface(1),Interface(1),"sync")
+  val lossy  = create(Interface(1),Interface(1),"lossy")
+  val fifo   = create(Interface(1),Interface(1),"fifo")
+  val fifof  = create(Interface(1),Interface(1),"fifof")
   val sdrain = create(Interface(2),Interface(0),"sdrain")
   
   val id   = create(Interface(1),Interface(1),"id")
