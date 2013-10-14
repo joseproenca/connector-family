@@ -34,12 +34,12 @@ sealed abstract class Term {
     def +(t:Term) = new AddAddTerm(this,t)
     def -(t:Term) = new SubAddTerm(this,t)
     def unary_-   = new MinusTerm(this)
-    def le(t:Term)  = new LTEQExp(this,t)
-    def ge(t:Term)  = new GTEQExp(this,t)
-    def lt(t:Term)  = new LTExp(this,t)
-    def gt(t:Term)  = new GTExp(this,t)
-    def eq(t:Term)  = new EqExp(this,t)
-    def neq(t:Term) = new NotEqExp(this,t)
+    def <==(t:Term)  = new LTEQExp(this,t)  // implicit conversions stop working with <=, <, <<.
+    def >==(t:Term)  = new GTEQExp(this,t)
+    def <<<(t:Term)  = new LTExp(this,t)
+    def >>>(t:Term)  = new GTExp(this,t)
+    def ===(t:Term)  = new EqExp(this,t)
+    def !==(t:Term) = new NotEqExp(this,t)
 }
 
 case class IntVal(n:Int) extends Term
@@ -76,5 +76,7 @@ case class AIDTerm(aid:AID) extends Term
 object AttrConstr extends App {
     import Utils._
     
-    println("my constraint: - "+(True && ("A" --> False) || !(4 ge "attr") || ("attr" ge 4)))
+    println("my constraint: - "+
+    		(True && ("A" --> False) || !(4 >== "attr") || ("attr" <== 6)))
 }
+

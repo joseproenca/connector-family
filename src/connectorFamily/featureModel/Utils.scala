@@ -5,7 +5,7 @@ object Utils {
   implicit def str2FID(str:String): FID = FID(str)   
   implicit def str2AID(str:String): AID = AIDU(str)   
   implicit def str2ArrowAID(str: String): ArrowAssoc[AID] =
-      new ArrowAssoc(str2AID(str))
+      new ArrowAssoc(AIDU(str))
 
   implicit def str2AIDTerm(str:String): AIDTerm = AIDTerm(AIDU(str))
   implicit def str2FeatTerm(str:String): FIDExp = FIDExp(FID(str))

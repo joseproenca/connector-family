@@ -7,7 +7,7 @@ package connectorFamily.featureModel
  *   a (possibly empty) set of declarations of attributes,
  *   a (possibly empty) set of constraints - NOT HERE YET
  */
-case class FeatureModel(fid:FID,gr:Group,at:Attrs)
+case class FeatureModel(fid:FID,gr:Group,at:Attrs,ct:AttrConstr*)
 //{
 ////  def this(name:String) = this(FID(name),EmptyGroup,Attrs())
 //}
@@ -30,7 +30,7 @@ case class AllOf(feats:List[FeatureModel]) extends Group(feats)
 case class FromTo(from:Int,to:Int,feats:List[FeatureModel]) extends Group(feats)
 
 /** Declaration of attribute variables with a given range of values **/
-case class Attrs(p:(AID,AttrRange)*)
+case class Attrs(decl:(AID,AttrRange)*)
 
 /** Range of values for an attribute - only bounded integers so far. **/
 sealed class AttrRange()
@@ -44,7 +44,11 @@ case class IntAttrSet(s:Iterable[Int]) extends AttrRange
 //// Builders for feature models and cardinalities ////
 object FeatureModel {
   def apply(name:String): FeatureModel =
-  	FeatureModel(FID(name),EmptyGroup,Attrs()) 
+  	FeatureModel(FID(name),EmptyGroup,Attrs(),True) 
+  def apply(name:String,gr:Group): FeatureModel =
+    FeatureModel(FID(name),gr,Attrs(),True) 
+//  def apply(fid:FID,gr:Group,at:Attrs): FeatureModel =
+//    FeatureModel(fid,gr,at,True) 
 }
 object OneOf   { def apply(feats:FeatureModel*): OneOf = OneOf(feats.toList) }
 object AllOf   { def apply(feats:FeatureModel*): AllOf = AllOf(feats.toList) }

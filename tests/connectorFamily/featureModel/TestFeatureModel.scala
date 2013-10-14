@@ -24,10 +24,27 @@ class TestFeatureModel {
       Attrs( "size" -> IntAttrBounded(1,10)) // this line is different.
     )
     
+    val mergerFM3 =
+      FeatureModel (
+        "Merger",
+        AllOf(
+          FeatureModel("Simple"),
+          FeatureModel("MaxMerger") ),        
+        Attrs( "size" -> (1 until 10)),
+        "Merger.size" % 2 === 0, // these 2 lines are new.
+        True                     //
+      )
+
+    
   /** simple test that will break once the structure/naming changes */
   @Test def printExample{
-  	assertEquals(mergerFM1.toString,
-  			"FeatureModel(FID(Merger),AllOf(List(FeatureModel(FID(Simple),EmptyGroup,Attrs(List())), FeatureModel(FID(MaxMerger),EmptyGroup,Attrs(List())))),Attrs(WrappedArray((AIDU(size),IntAttrBounded(1,10)))))")  
+    println(mergerFM3)
+
+    assertEquals(mergerFM1.toString,
+  			"FeatureModel(FID(Merger),AllOf(List("+
+  			    "FeatureModel(FID(Simple),EmptyGroup,Attrs(List()),True), "+
+  			    "FeatureModel(FID(MaxMerger),EmptyGroup,Attrs(List()),True))),"+
+  			  "Attrs(WrappedArray((AIDU(size),IntAttrBounded(1,10)))),True)")  
   }
 
   @Test def equalExamples{
