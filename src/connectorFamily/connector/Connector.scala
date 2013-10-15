@@ -1,6 +1,8 @@
 package connectorFamily.connector
 
-class Connector[R<:Rep[R]](val from: Interface, val to: Interface, val sort: R) {
+class Connector[R<:Rep[R]]
+(val from: Interface, val to: Interface, val sort: R) {
+//extends Context[R](){
 
 /****
 PRECEDENCE of infix operators:
@@ -99,9 +101,22 @@ class ConnectorCtx[R<:Rep[R]](from: Interface,to: Interface,sort: R,
 
 // needs: to create a new connector from a given one, and
 //        to recover the context from an instantiated connector
-class Context[R<:Rep[R]](f: Connector[R] => Connector[R]) {
+class Context[R<:Rep[R]] (f: Connector[R] => Connector[R]) {
 	def apply(arg:Connector[R]) = {
 		val nc = f(arg)
 		new ConnectorCtx(nc.from,nc.to,nc.sort,this,arg)
 	} 
 }
+
+
+//class ConnectorCtxs[R<:Rep[R]](from: Interface,to: Interface,sort: R,
+//                               val ctx: Contexts[R], val holes:List[Connector[R]])
+//  extends Connector[R](from,to,sort)
+//
+//class Contexts[R<:Rep[R]](f: List[Connector[R]] => Connector[R]) {
+////extends Context[R]((con:Connector[R]) => f(List(con))){
+//	def apply(args:List[Connector[R]]) = {
+//		val nc = f(args)
+//		new ConnectorCtxs(nc.from,nc.to,nc.sort,this,args)
+//	}
+//}
