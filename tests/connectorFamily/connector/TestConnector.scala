@@ -21,10 +21,10 @@ class TestConnector {
     println(eta*id & id*eps)
     println(eta &
             (dupl & sync*fifof & sync*dupl & sync*sync*fifo) * sync.inv &
-            sync*sync*epsd)
+            sync*sync*epsr)
     println(id.inv*eta &
             (id.inv*dupl & eps*fifof & dupl & id*fifo) * id.inv &
-            id*epsd)
+            id*epsr)
   }
      
   @Test def TestContexts() {
@@ -40,21 +40,49 @@ class TestConnector {
     )
     
     def seq(n:Int): ConnCtx = n match {
-    case 0 => base(epsd)
+    case 0 => base(epsr)
     case _ => val prev = seq(n-1)
-            base(more(prev.hole))
+              base(more(prev.hole))
     }
     
     assertEquals("Contexts match.",seq(3).ctx,base)
     
     assertEquals("Expected seq_0",
-      "eta ; dupl ; id*fifof*id' ; id*epsd: [] -> [1]",
+      "eta ; dupl ; id*fifof*id' ; id*epsr: [] -> [1]",
       seq(0).toString)
     assertEquals("Expected seq_1",
-      "eta ; dupl ; id*fifof*id' ; id*dupl ; id*fifo*id' ; id*epsd: [] -> [2]",
+      "eta ; dupl ; id*fifof*id' ; id*dupl ; id*fifo*id' ; id*epsr: [] -> [2]",
       seq(1).toString)
     assertEquals("Expected seq_2",
-      "eta ; dupl ; id*fifof*id' ; id*dupl ; id*fifo*id' ; id*dupl ; id*fifo*id' ; id*epsd: [] -> [3]",
+      "eta ; dupl ; id*fifof*id' ; id*dupl ; id*fifo*id' ; id*dupl ; id*fifo*id' ; id*epsr: [] -> [3]",
       seq(2).toString)
   }
+  
+  @Test def TestBigConnector() {
+  	type Conn = Connector[SimpleRep]
+  	type ConnCtx = ConnectorCtx[SimpleRep]
+
+  	val syncMerge = new Context(
+  			(ab: Conn) =>
+  				dupl &
+  				(xr(3) &
+  					 dupl * dupl(3) * dupl &
+             id * mrg * id * mrg * id &
+             id * id * swap * id &
+  					 fifo * ab * fifo * fifo &
+  					 id * id * swap * id &
+  					 dupl * xr * dupl(3) * xr * dupl &
+  					 id * sdrain * sdrain * id * sdrain * sdrain * id &
+  					 mrg(3) &
+  					 dupl
+  				) * fifo &
+  				id * sdrain
+  	)
+  	
+  	val lossyAB = syncMerge(lossy*lossy)
+  	assertEquals("Type-checking sync merge.",
+  			(lossyAB.from,lossyAB.to),
+  			(Interface(1),Interface(1)))
+  }
+
 }
