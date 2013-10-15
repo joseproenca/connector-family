@@ -63,21 +63,21 @@ class TestConnector {
   	type ConnCtx = ConnectorCtx[SimpleRep]
 
   	val syncMerge = new Context(
-  			(ab: Conn) =>
-  				dupl &
-  				(xr(3) &
-  					 dupl * dupl(3) * dupl &
+        (ab: Conn) =>
+          dupl &
+          (xr(3) &
+             dupl * dupl(3) * dupl &
              id * mrg * id * mrg * id &
              id * id * swap * id &
-  					 fifo * ab * fifo * fifo &
-  					 id * id * swap * id &
-  					 dupl * xr * dupl(3) * xr * dupl &
-  					 id * sdrain * sdrain * id * sdrain * sdrain * id &
-  					 mrg(3) &
-  					 dupl
-  				) * fifo &
-  				id * sdrain
-  	)
+             fifo * ab * fifo * fifo &
+             id * id * swap * id &
+             dupl * xr * dupl(3) * xr * dupl &
+             id * sdrain * sdrain * id * sdrain * sdrain * id &
+             mrg(3) &
+             dupl
+          ) * fifo &
+          id * sdrain
+    )
   	
   	val lossyAB = syncMerge(lossy*lossy)
   	assertEquals("Type-checking sync merge.",
