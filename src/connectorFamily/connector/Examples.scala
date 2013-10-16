@@ -1,5 +1,8 @@
 package connectorFamily.connector
 
+/** Simple textual representation for connectors.
+ * Just the name and the operators - no brackets, so association is lost. 
+ */
 case class SimpleRep(val name:String) extends Rep[SimpleRep] {
   def *(other:SimpleRep): SimpleRep = SimpleRep(name ++ "*" ++ other.name) 
   def &(other:SimpleRep): SimpleRep = SimpleRep(name ++ " ; " ++ other.name) 
@@ -8,6 +11,7 @@ case class SimpleRep(val name:String) extends Rep[SimpleRep] {
   override def toString = name 
 }
 
+/** Simple textual representation and interfaces of commonly used connectors in Reo. */
 object Examples {
 	private def create(in:Interface,out:Interface,str:String) =
 		new Connector(in,out,SimpleRep(str))

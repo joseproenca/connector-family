@@ -13,9 +13,14 @@ case class FeatureModel(fid:FID,gr:Group,at:Attrs,ct:AttrConstr*)
 //}
 
 /** feature ID **/
-case class FID(name:String)
+case class FID(val name:String)
 /** Attribute ID **/
-class AID(fid:Option[String],name:String)
+class AID(fid:Option[String],nm:String) {
+	def name = fid match {
+		case Some(n) => n +"."+nm
+		case _ => nm
+	}
+}
 /** Qualified AID (with the feature name) **/
 case class AIDQ(fid:String,aid:String) extends AID(Some(fid),aid)
 /** Unqualified AID **/
@@ -33,12 +38,13 @@ case class FromTo(from:Int,to:Int,feats:List[FeatureModel]) extends Group(feats)
 case class Attrs(decl:(AID,AttrRange)*)
 
 /** Range of values for an attribute - only bounded integers so far. **/
-sealed class AttrRange()
-case class IntAttr() extends AttrRange
-case class IntAttrMax(to:Int) extends AttrRange
-case class IntAttrMin(from:Int) extends AttrRange
+sealed abstract class AttrRange()
+case object IntAttr extends AttrRange
+case class IntAttrTo(to:Int) extends AttrRange
+case class IntAttrFrom(from:Int) extends AttrRange
 case class IntAttrBounded(from:Int,to:Int) extends AttrRange
 case class IntAttrSet(s:Iterable[Int]) extends AttrRange
+case object BoolAttr extends AttrRange
 
 
 //// Builders for feature models and cardinalities ////

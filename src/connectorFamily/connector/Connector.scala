@@ -20,9 +20,7 @@ letter other
 ****/
 	
 	
-	/**
-	 * Tense product of connectors
-	 */
+	/** Tense product of connectors */
 	def *(other:Connector[R]): Connector[R] =
 		new Connector(
 				from ++ other.from,
@@ -30,9 +28,7 @@ letter other
 				sort * other.sort 
 				)
 	
-	/**
-	 * Sequential composition of connectors 
-	 */
+	/** Sequential composition of connectors */
 	def &(other:Connector[R]): Connector[R] =
 		if (matches(other))
 		  new Connector(
@@ -44,9 +40,7 @@ letter other
 			throw new RuntimeException("Connectors are not compatible:\n - "+
 					this+"\n - "+other)
 	
-	/**
-	 * Choice of connectors
-	 */
+	/** Choice of connectors */
 	def +(other:Connector[R]): Connector[R] =
 		if (from == other.from && to == other.to)
 			new Connector(from,to,sort + sort)
@@ -54,9 +48,7 @@ letter other
       throw new RuntimeException("Connectors have different signatures:\n - "+
           this+"\n - "+other)
 
-	/**
-	 * Checks if the composition is valid.
-	 */
+	/** Checks if the composition is valid. */
 	def matches(other:Connector[R]) =
 		to == other.from
 		
@@ -72,8 +64,7 @@ letter other
 		
 }
 
-/**
- * The objects being composed.
+/** The objects being composed.
  * Could be strings, reo connectors, open petri nets, etc. 
  */
 abstract class Rep[R<:Rep[R]] {
@@ -94,13 +85,18 @@ class NullRep extends Rep[NullRep] {
   def inv = this
 }
 
-
+/** Connector with references to the context and hole used to produce it. */
 class ConnectorCtx[R<:Rep[R]](from: Interface,to: Interface,sort: R,
 		                          val ctx: Context[R], val hole:Connector[R])
   extends Connector[R](from,to,sort)
 
 // needs: to create a new connector from a given one, and
 //        to recover the context from an instantiated connector
+/** Context: given a connector returns a new connector.
+ *  
+ *  Automatically creates references to this context and the hole
+ *  when applied to a connector.
+ */
 class Context[R<:Rep[R]] (f: Connector[R] => Connector[R]) {
 	def apply(arg:Connector[R]) = {
 		val nc = f(arg)

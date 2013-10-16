@@ -2,9 +2,9 @@ package connectorFamily.featureModel
 
 sealed abstract class AttrConstr
 
-class IfOut(exp: Exp)  extends AttrConstr
-class Require(fid: FID) extends AttrConstr
-class Exclude(fid: FID) extends AttrConstr
+case class IfOut(exp: Exp)  extends AttrConstr
+case class Require(fid: FID) extends AttrConstr
+case class Exclude(fid: FID) extends AttrConstr
 
 //// Booleans - 5 operators ////
 abstract class Exp extends AttrConstr {
