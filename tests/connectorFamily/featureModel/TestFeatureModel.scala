@@ -30,9 +30,10 @@ class TestFeatureModel {
         AllOf(
           FeatureModel("Simple"),
           FeatureModel("MaxMerger") ),        
-        Attrs( "size" -> (1 until 10), "fake" -> BoolAttr),
-        "Merger.size" % 2 === 0, // these 2 lines are new.
-        True                     //
+        Attrs( "size"   -> (1 until 10),
+        		   "isExcl" -> BoolAttr    ), // these 3 lines are new.
+        "Merger.size" % 2 === 0,          // 
+        "isExcl" === "Simple"             //
       )
 
     

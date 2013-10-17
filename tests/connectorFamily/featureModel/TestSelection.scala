@@ -15,9 +15,9 @@ class TestSelection {
 	  println(featSel)
 
     assertTrue(featSel("Merger"))
-    assertTrue("Integer attribute", featSel("Merger", "size").isRight)
-    assertTrue("Boolean attribute", featSel("Merger", "isExcl").isLeft)
-	  assertEquals(featSel("Merger", "size").right.get , 5)
+    assertTrue("Integer attribute", featSel("Merger", "size").isInt)
+    assertTrue("Boolean attribute", featSel("Merger", "isExcl").isBool)
+	  assertEquals(featSel("Merger", "size").asInt , 5)
 	}
 
 }

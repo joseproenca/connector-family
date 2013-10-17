@@ -10,10 +10,10 @@ class FeatureSelection {
   private var _attrs = Map[AID,Either[Boolean,Int]]()
 
   def apply(f:String): Boolean             = _feats(FID(f))
-  def apply(f:String,a:String): Either[Boolean,Int] =
-    _attrs(AIDQ(f,a))
+  def apply(f:String,a:String): BoolOrInt = //Either[Boolean,Int] =
+    BoolOrInt(_attrs(AIDQ(f,a)))
   def apply(f:FID): Boolean             = _feats(f)
-  def apply(a:AID): Either[Boolean,Int] = _attrs(a)
+  def apply(a:AID): BoolOrInt           = BoolOrInt(_attrs(a))
 
   def update(f:String,b:Boolean)    = _feats += (FID(f) -> b)
   def update(f:String,a:String,n:Int) =
@@ -33,4 +33,13 @@ class FeatureSelection {
       _attrs.mkString("",",","]")
   }
 
+}
+
+case class BoolOrInt(bi : Either[Boolean,Int]) {
+	def isBool = bi.isLeft
+	def isInt  = bi.isRight
+  def asBool = bi.left.get 
+  def asInt  = bi.right.get 
+  def getBool = bi.left 
+  def getInt  = bi.right 
 }
