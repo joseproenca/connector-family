@@ -96,7 +96,10 @@ class Solver {
       case EquivExp(left,right) => Choco.and(
       		Choco.implies(constr2choco(left,root),constr2choco(right,root)),
       		Choco.implies(constr2choco(right,root),constr2choco(left,root)))
-     
+      case LTExp(left,right) => Choco.lt(term2choco(left,root),term2choco(right,root))
+      case GTExp(left,right) => Choco.gt(term2choco(left,root),term2choco(right,root))
+      case LTEQExp(left,right) => Choco.leq(term2choco(left,root),term2choco(right,root))
+      case GTEQExp(left,right) => Choco.geq(term2choco(left,root),term2choco(right,root))     
   	}
   }
   
