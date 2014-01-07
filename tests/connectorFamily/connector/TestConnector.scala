@@ -48,13 +48,13 @@ class TestConnector {
     assertEquals("Contexts match.",seq(3).ctx,base)
     
     assertEquals("Expected seq_0",
-      "eta ; dupl ; id*fifof*id' ; id*epsr: [] -> [1]",
+      "eta ; dupl ; id*fifof*id' ; id*epsr: [0] -> [1]",
       seq(0).toString)
     assertEquals("Expected seq_1",
-      "eta ; dupl ; id*fifof*id' ; id*dupl ; id*fifo*id' ; id*epsr: [] -> [2]",
+      "eta ; dupl ; id*fifof*id' ; id*dupl ; id*fifo*id' ; id*epsr: [0] -> [2]",
       seq(1).toString)
     assertEquals("Expected seq_2",
-      "eta ; dupl ; id*fifof*id' ; id*dupl ; id*fifo*id' ; id*dupl ; id*fifo*id' ; id*epsr: [] -> [3]",
+      "eta ; dupl ; id*fifof*id' ; id*dupl ; id*fifo*id' ; id*dupl ; id*fifo*id' ; id*epsr: [0] -> [3]",
       seq(2).toString)
   }
   

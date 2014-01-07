@@ -13,7 +13,12 @@ case class SimpleRep(val name:String) extends Rep[SimpleRep] {
 
 /** Simple textual representation and interfaces of commonly used connectors in Reo. */
 object Examples {
-	private def create(in:Interface,out:Interface,str:String) =
+  
+  implicit def int2intlit(i: Int): InterfaceLit =
+    if (i>=0) InterfaceInt(i)
+    else InterfaceDual(InterfaceInt(-1*i))
+  
+  private def create(in:Interface,out:Interface,str:String) =
 		new Connector(in,out,SimpleRep(str))
 	
   val sync   = create(Interface(1),Interface(1),"sync")
