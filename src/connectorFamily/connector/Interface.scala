@@ -10,7 +10,7 @@ class Interface {
 //	// only normalised interfaces (2,-1,4 ok, 2,1,-3 not ok)
 //  private var interf: List[Int] = List()
 
-  private var interf: List[InterfaceLit] = List()
+  private var interf: List[ILit] = List()
   
   /**
    * Gets a list representing the interface
@@ -44,8 +44,8 @@ class Interface {
   		interf =  //i.map(_*(-1))
   		  for (lit <- i)
   		    yield lit match {
-  		    	case InterfaceDual(id) => id
-  		    	case _ => InterfaceDual(lit)
+  		    	case IDual(id) => id
+  		    	case _ => IDual(lit)
   		  	}
   	}
   }
@@ -57,6 +57,8 @@ class Interface {
     case _ => false
   }
   override def hashCode = interf.hashCode
+
+  def ===(i:Interface) = IEq(this,i) 
 }
 
 /**
@@ -64,61 +66,54 @@ class Interface {
  * E.g., [0,1,2,-4,3,2] becomes [3,-4,5] (which means 3 x 4* x 5 in the paper).
  */
 object Interface {
-	def apply(a:InterfaceLit*): Interface = apply(a.toList)
+	def apply(a:ILit*): Interface = apply(a.toList)
 	
-	def apply(a:Iterable[InterfaceLit]): Interface = {
+	def apply(a:Iterable[ILit]): Interface = {
 		if (a.isEmpty) new Interface
 		else {
 			var res = new Interface
-			for (x <- a) {
-				if (x!=0)
-					res ++= new Interface { interf = List(x)}
+			for (lit <- a) {
+				if (lit != INat(0))
+					res ++= new Interface { interf = List(lit)}
 			}
 			res
 		}
 	}
+	
+	implicit def ilit2interface(lit:ILit) : Interface =  new Interface { interf = List(lit)}
 }
 
 
 
-
-class InterfaceLit {
+sealed abstract class ILit {
   /** Tries to combine 2 constant interface literals */
-  def ++(other:InterfaceLit) : Option[InterfaceLit] = None
+  def ++(other:ILit) : Option[ILit] = None
+  def ===(i:ILit) = IEq(Interface.ilit2interface(this),Interface.ilit2interface(i)) 
+
 }
-case class InterfaceInt(i:Int) extends InterfaceLit // POSITIVE!
-{   override def toString: String = i.toString
-	override def ++(other:InterfaceLit) = other match {
-		case InterfaceInt(i2) => Some(InterfaceInt(i+i2))
+case class INat(n:Int) extends ILit // POSITIVE!
+{   override def toString: String = n.toString
+	override def ++(other:ILit) = other match {
+		case INat(i2) => Some(INat(n+i2))
 		case _ => None
 	}
 }
-case class InterfaceDual(i:InterfaceLit) extends InterfaceLit
+case class IDual(i:ILit) extends ILit
 {   override def toString: String = i.toString+"*"
-	override def ++(other:InterfaceLit) = other match {
-		case InterfaceDual(i2) => (i++i2).map(InterfaceDual(_))
+	override def ++(other:ILit) = other match {
+		case IDual(i2) => (i++i2).map(IDual(_))
 		case _ => None
 	}
 }
-case class InterfaceIndBool(ifTrue:Interface, ifFalse:Interface, b:BoolTerm) extends InterfaceLit
+case class IIndBool(ifTrue:Interface, ifFalse:Interface, b:Val) extends ILit
 	{ override def toString: String = ifTrue+" <"+b+"> "+ifFalse }
-case class InterfaceIndNat(ifZero:Interface, ifSucc:Interface,
-		pred:NatVar, predT: InterfaceVar, n:NatTerm) extends InterfaceLit
+case class IIndNat(ifZero:Interface, pred:VVar, predT: IVar, ifSucc:Interface, n:Val) extends ILit
 	{ override def toString: String = "Ind("+ifZero+","+pred+"."+predT+"."+ifSucc+","+n+")" }
-
-class BoolTerm
-class BoolVar(name:String) extends BoolTerm
+     class IVar(val name:String) extends ILit
 	{ override def toString: String = name }	
-object TrueTerm extends BoolTerm
-	{ override def toString: String = "True" }	
-object FalseTerm extends BoolTerm
-	{ override def toString: String = "False" }	
 
-class NatTerm
-class NatVar(name:String) extends NatTerm
-	{ override def toString: String = name }	
-class NatVal(n:Int) extends NatTerm
-	{ override def toString: String = n.toString }	
 
-class InterfaceVar(name:String) extends InterfaceLit
-	{ override def toString: String = name }	
+
+
+
+

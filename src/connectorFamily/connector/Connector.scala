@@ -1,6 +1,10 @@
 package connectorFamily.connector
 
-class Connector[R<:Rep[R]]
+/**
+ * Initial approach to represent a OldConnector. Being replaced by Conn.
+ */
+@deprecated
+class OldConnector[R<:Rep[R]]
 (val from: Interface, val to: Interface, val sort: R) {
 //extends Context[R](){
 
@@ -20,43 +24,43 @@ letter other
 ****/
 	
 	
-	/** Tense product of connectors */
-	def *(other:Connector[R]): Connector[R] =
-		new Connector(
+	/** Tense product of OldConnectors */
+	def *(other:OldConnector[R]): OldConnector[R] =
+		new OldConnector(
 				from ++ other.from,
 				to ++ other.to,
 				sort * other.sort 
 				)
 	
-	/** Sequential composition of connectors */
-	def &(other:Connector[R]): Connector[R] =
+	/** Sequential composition of OldConnectors */
+	def &(other:OldConnector[R]): OldConnector[R] =
 		if (matches(other))
-		  new Connector(
+		  new OldConnector(
 		      from,
 		      other.to,
 		      sort & other.sort
 		      )
 		else
-			throw new RuntimeException("Connectors are not compatible:\n - "+
+			throw new RuntimeException("OldConnectors are not compatible:\n - "+
 					this+"\n - "+other)
 	
-	/** Choice of connectors */
-	def +(other:Connector[R]): Connector[R] =
+	/** Choice of OldConnectors */
+	def +(other:OldConnector[R]): OldConnector[R] =
 		if (from == other.from && to == other.to)
-			new Connector(from,to,sort + sort)
+			new OldConnector(from,to,sort + sort)
 		else
-      throw new RuntimeException("Connectors have different signatures:\n - "+
+      throw new RuntimeException("OldConnectors have different signatures:\n - "+
           this+"\n - "+other)
 
 	/** Checks if the composition is valid. */
-	def matches(other:Connector[R]) =
+	def matches(other:OldConnector[R]) =
 		to == other.from
 		
 	/**
-	 * Inverts the direction of a connector
+	 * Inverts the direction of a OldConnector
 	 */
-	def inv: Connector[R] =
-		new Connector(to.inv, from.inv, sort.inv)
+	def inv: OldConnector[R] =
+		new OldConnector(to.inv, from.inv, sort.inv)
 		
 	override def toString: String =
 //      from.toString ++ sort.toString ++ to.toString
@@ -65,7 +69,7 @@ letter other
 }
 
 /** The objects being composed.
- * Could be strings, reo connectors, open petri nets, etc. 
+ * Could be strings, reo OldConnectors, open petri nets, etc. 
  */
 abstract class Rep[R<:Rep[R]] {
 	/** Product */
@@ -85,34 +89,34 @@ class NullRep extends Rep[NullRep] {
   def inv = this
 }
 
-/** Connector with references to the context and hole used to produce it. */
-class ConnectorCtx[R<:Rep[R]](from: Interface,to: Interface,sort: R,
-		                          val ctx: Context[R], val hole:Connector[R])
-  extends Connector[R](from,to,sort)
+/** OldConnector with references to the context and hole used to produce it. */
+class OldConnectorCtx[R<:Rep[R]](from: Interface,to: Interface,sort: R,
+		                          val ctx: Context[R], val hole:OldConnector[R])
+  extends OldConnector[R](from,to,sort)
 
-// needs: to create a new connector from a given one, and
-//        to recover the context from an instantiated connector
-/** Context: given a connector returns a new connector.
+// needs: to create a new OldConnector from a given one, and
+//        to recover the context from an instantiated OldConnector
+/** Context: given a OldConnector returns a new OldConnector.
  *  
  *  Automatically creates references to this context and the hole
- *  when applied to a connector.
+ *  when applied to a OldConnector.
  */
-class Context[R<:Rep[R]] (f: Connector[R] => Connector[R]) {
-	def apply(arg:Connector[R]) = {
+class Context[R<:Rep[R]] (f: OldConnector[R] => OldConnector[R]) {
+	def apply(arg:OldConnector[R]) = {
 		val nc = f(arg)
-		new ConnectorCtx(nc.from,nc.to,nc.sort,this,arg)
+		new OldConnectorCtx(nc.from,nc.to,nc.sort,this,arg)
 	} 
 }
 
 
-//class ConnectorCtxs[R<:Rep[R]](from: Interface,to: Interface,sort: R,
-//                               val ctx: Contexts[R], val holes:List[Connector[R]])
-//  extends Connector[R](from,to,sort)
+//class OldConnectorCtxs[R<:Rep[R]](from: Interface,to: Interface,sort: R,
+//                               val ctx: Contexts[R], val holes:List[OldConnector[R]])
+//  extends OldConnector[R](from,to,sort)
 //
-//class Contexts[R<:Rep[R]](f: List[Connector[R]] => Connector[R]) {
-////extends Context[R]((con:Connector[R]) => f(List(con))){
-//	def apply(args:List[Connector[R]]) = {
+//class Contexts[R<:Rep[R]](f: List[OldConnector[R]] => OldConnector[R]) {
+////extends Context[R]((con:OldConnector[R]) => f(List(con))){
+//	def apply(args:List[OldConnector[R]]) = {
 //		val nc = f(args)
-//		new ConnectorCtxs(nc.from,nc.to,nc.sort,this,args)
+//		new OldConnectorCtxs(nc.from,nc.to,nc.sort,this,args)
 //	}
 //}

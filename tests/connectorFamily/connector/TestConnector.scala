@@ -10,59 +10,33 @@ class TestConnector {
   
     // all should type&check
   
+    def pp(c:Conn) = {
+      val (t,cnst) = TypeCheck(c)
+      println(PP(c)+" : "+PP(t)+" | "+cnst.mkString("[",",","]"))
+    }
+    println("--- testing new connectors ---")
+    
     // examples from the paper
-    println(lossy & fifo)
-    println(lossy*id & xrd)
-    println(swap & sdrain)
-    println(lossy & xr)
+    pp(lossy & fifo)
+    pp(lossy*id & xrd)
+    pp(swap & sdrain)
+    pp(lossy & xr)
     
     // adding compact closed aspect (duals)
-    println(lossy.inv*id & eps)
-    println(eta*id & id*eps)
-    println(eta &
+    pp(lossy.inv*id & eps)
+    pp(eta*id & id*eps)
+    pp(eta &
             (dupl & sync*fifof & sync*dupl & sync*sync*fifo) * sync.inv &
             sync*sync*epsr)
-    println(id.inv*eta &
+    pp(id.inv*eta &
             (id.inv*dupl & eps*fifof & dupl & id*fifo) * id.inv &
             id*epsr)
   }
      
-  @Test def TestContexts() {
-    type Conn = Connector[SimpleRep]
-    type ConnCtx = ConnectorCtx[SimpleRep]
-  
-    val base = new Context(
-      (r:Conn) => eta & (dupl & id * fifof) * id.inv & id * r
-    )
-    
-    val more = new Context(
-      (r:Conn) => (dupl & id*fifo) * id.inv & id * r
-    )
-    
-    def seq(n:Int): ConnCtx = n match {
-    case 0 => base(epsr)
-    case _ => val prev = seq(n-1)
-              base(more(prev.hole))
-    }
-    
-    assertEquals("Contexts match.",seq(3).ctx,base)
-    
-    assertEquals("Expected seq_0",
-      "eta ; dupl ; id*fifof*id' ; id*epsr: [0] -> [1]",
-      seq(0).toString)
-    assertEquals("Expected seq_1",
-      "eta ; dupl ; id*fifof*id' ; id*dupl ; id*fifo*id' ; id*epsr: [0] -> [2]",
-      seq(1).toString)
-    assertEquals("Expected seq_2",
-      "eta ; dupl ; id*fifof*id' ; id*dupl ; id*fifo*id' ; id*dupl ; id*fifo*id' ; id*epsr: [0] -> [3]",
-      seq(2).toString)
-  }
   
   @Test def TestBigConnector() {
-  	type Conn = Connector[SimpleRep]
-  	type ConnCtx = ConnectorCtx[SimpleRep]
 
-  	val syncMerge = new Context(
+  	val syncMerge = //new Context(
         (ab: Conn) =>
           dupl &
           (xr(3) &
@@ -77,12 +51,12 @@ class TestConnector {
              dupl
           ) * fifo &
           id * sdrain
-    )
+//    )
   	
   	val lossyAB = syncMerge(lossy*lossy)
-  	assertEquals("Type-checking sync merge.",
-  			(lossyAB.from,lossyAB.to),
-  			(Interface(1),Interface(1)))
+//  	assertEquals("Type-checking sync merge.",
+//  			(Interface(1),Interface(1)),
+//  			TypeCheck(lossyAB))
   }
 
 }

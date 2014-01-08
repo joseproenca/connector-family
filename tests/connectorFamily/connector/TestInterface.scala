@@ -4,9 +4,9 @@ import org.junit.Test
 import org.junit.Assert._
 
 class TestInterface {
-	implicit def int2intlit(i: Int): InterfaceLit =
-	    if (i>=0) InterfaceInt(i)
-	    else InterfaceDual(InterfaceInt(-1*i))
+	implicit def int2intlit(i: Int): ILit =
+	    if (i>=0) INat(i)
+	    else IDual(INat(-1*i))
 
 	@Test def SimplifyAndPrint() {
 		val i1 = Interface(3,-2,-3,2)
