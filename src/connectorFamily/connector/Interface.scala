@@ -111,6 +111,14 @@ case class IIndNat(ifZero:Interface, pred:VVar, predT: IVar, ifSucc:Interface, n
 	{ override def toString: String = "Ind("+ifZero+","+pred+"."+predT+"."+ifSucc+","+n+")" }
      class IVar(val name:String) extends ILit
 	{ override def toString: String = name }	
+     
+/*
+case INat(n)
+case IDual(lit)
+case IIndBool(iTrue, iFalse, val)
+case IIndNat(iZero, vvar, ivar, iSucc, val)
+case v:IVar
+ */
 
 
 

@@ -1,7 +1,12 @@
 package connectorFamily.connector
 
 object TypeCheck {
-  def apply(c:Conn) = infer(new TypeEnv,c)
+  def apply(c:Conn) = {
+  	val (typ,consts) = infer(TypeEnv(),c)
+  	val subs = unify(consts)
+  	val newtype = subs(typ)
+  	(newtype,consts)
+  }
   
   def infer(env:TypeEnv, c:Conn) : (FType,List[Const]) = c match {
     case Par(c1,c2) =>
@@ -98,6 +103,68 @@ object TypeCheck {
   	case _:ProdV => true
   	case _ => false
   } 
+  
+  
+  /** Unify constraints.
+   *  If it compares connector types: EVALUATE (yielding a pair of evaluated interfaces).
+   *  If it compares interfaces: split into interface literals
+   *  If it compares literals: follow algorithm
+   *  If it compares value types: check equality
+   *  If it compares values (not yet): updated algorithm
+   */
+  def unify(cs: List[Const]): ISubst = cs match {
+  	case Nil => new ISubst
+  	case CEq(t1,t2)::rest =>
+			val (i1,i2) = evaluate(t1)
+			val (i3,i4) = evaluate(t2)
+			unify(IEq(i1,i3)::IEq(i2,i4)::rest)
+		case IEq(i1,i2)::rest =>
+			val l1 = i1.get
+			val l2 = i2.get
+			if (l1.size != l2.size)
+				throw new TypeException("Failed to unify interfaces "+i1+" - "+i2)
+			unify((l1,l2).zipped.map(LEq(_,_)) ++ rest)
+		//now the algorithm for literals
+		case LEq(lit1,lit2)::rest if lit1 == lit2 => unify(rest)
+		case LEq(x:IVar,lit2)::rest /*if lit2 contains x*/ => 
+			val subst = ISubst(x->lit2)
+			unify(rest.map(subst(_))) ++ ISubst(x->lit2) // ORDER is important.				
+    case LEq(lit2,x:IVar)::rest /*if lit2 contains x*/ => 
+      val subst = ISubst(x->lit2)
+      unify(rest.map(subst(_))) ++ ISubst(x->lit2) // ORDER is important. 
+    case LEq(IIndBool(t1,f1,b1),IIndBool(t2,f2,b2))::rest if b1==b2 => // LATER: unify values!
+       unify(IEq(t1,t2)::IEq(f1,f2)::rest)
+    case LEq(IIndNat(iZ1,vv1,iv1,iS1,n1),IIndNat(iZ2,vv2,iv2,iS2,n2))::rest if n1==n2 => // LATER: unify values!
+       unify(IEq(iZ1,iZ2)::IEq(iS1,ISubst(iv2->iv1)(Substitution(vv2->vv1)(iS2)))::rest)
+    case x::_ => throw new TypeException("Failed to unify constraints "+x)
+  }
+  
+  /** Evaluate (simplify) a connector type (not a family). */
+  def evaluate(t:CType): (Interface,Interface) = t match {
+    case IPair(l,r) => (evaluate(l),evaluate(r))
+    case CPair(l,r) => 
+      val (l1,l2) = evaluate(l)
+      val (r1,r2) = evaluate(r)
+    	(evaluate(l1++r1), evaluate(l2++r2))
+  }
+  
+  /** Evaluate (simplify) an interface. */
+  def evaluate(i:Interface) : Interface = i.get match {
+  	case Nil => i
+    case INat(n)::rest => Interface(INat(n)) ++ evaluate(Interface(rest))
+    case IDual(lit)::rest =>
+    	val ev = evaluate(Interface(lit))    	
+    	ev.inv ++ evaluate(Interface(rest)) 
+    case IIndBool(iTrue, _ , VTrue) ::rest => evaluate(iTrue ++Interface(rest))
+    case IIndBool(_, iFalse, VFalse)::rest => evaluate(iFalse++Interface(rest))
+    case IIndNat(iZero, _, _, _, VZero)::rest => evaluate(iZero++Interface(rest))
+    case IIndNat(iZero, vv, iv, iSucc, VSucc(n))::rest =>
+    	val subs = Substitution(vv->n)++
+    	           Substitution(iv->IIndNat(iZero,vv,iv,iSucc,n))
+    	evaluate(subs(iSucc)++Interface(rest))
+    //case (v:Var)::rest =>
+    case _ => throw new TypeException("Could not evaluate interface "+i)
+  }
 }
 
 /**
@@ -107,15 +174,17 @@ sealed abstract class Const
 case class CEq(t1:CType,t2:CType) extends Const
 case class IEq(t1:Interface,t2:Interface) extends Const
 case class VEq(t1:VType,t2:VType) extends Const
+case class LEq(t1:ILit,t2:ILit) extends Const
 
 
 /**
  * Maps variables to connectors, values, or interfaces.
  */
-class TypeEnv {
-  private var cvars: scala.collection.immutable.Map[CVar,CType] = scala.collection.immutable.Map() 
-  private var vvars: scala.collection.immutable.Map[VVar,VType] = scala.collection.immutable.Map() 
-  private var ivars: scala.collection.immutable.Map[IVar,Interface] = scala.collection.immutable.Map()
+class TypeEnv (cvars:Map[CVar,CType], vvars: Map[VVar,VType], ivars: Map[IVar,Interface]) {
+//class TypeEnv {
+//  val cvars: scala.collection.immutable.Map[CVar,CType] = scala.collection.immutable.Map() 
+//  val vvars: scala.collection.immutable.Map[VVar,VType] = scala.collection.immutable.Map() 
+//  val ivars: scala.collection.immutable.Map[IVar,Interface] = scala.collection.immutable.Map()
   
 //  def update(v:CVar,e:CType) = cvars.update(v,e)
 //  def update(v:VVar,e:VType) = vvars.update(v,e)
@@ -123,13 +192,13 @@ class TypeEnv {
   
   def +(pair:(_,_)) = pair._1 match {
     case v1:CVar => pair._2 match {
-    	case v2:CType =>  new TypeEnv{ cvars = this.cvars + (v1->v2); vvars = this.vvars; ivars = this.ivars }
+    case v2:CType => new TypeEnv(cvars+(v1->v2),vvars,ivars) 
     }
     case v1:VVar => pair._2 match {
-    	case v2:VType =>  new TypeEnv{ cvars = this.cvars; vvars = this.vvars + (v1->v2); ivars = this.ivars }
+    case v2:VType => new TypeEnv(cvars,vvars+(v1->v2),ivars)    	
     }
     case v1:IVar => pair._2 match {
-    	case v2:Interface =>  new TypeEnv{ cvars = this.cvars; vvars = this.vvars; ivars = this.ivars + (v1->v2) }
+  	case v2:Interface => new TypeEnv(cvars,vvars,ivars+(v1->v2))
     }
   }
       
@@ -144,6 +213,12 @@ class TypeEnv {
   def contains(v:CVar) = cvars.contains(v)
   def contains(v:VVar) = vvars.contains(v)
   def contains(v:IVar) = ivars.contains(v)
+}
+
+object TypeEnv {
+	def apply(): TypeEnv = new TypeEnv(Map(),Map(),Map())
+//	def apply(cv:Map[CVar,CType], vv: Map[VVar,VType], iv: Map[IVar,Interface]) =
+//		new TypeEnv{ override val cvars = cv; override val vvars = vv; override val ivars = iv }
 }
 
 
