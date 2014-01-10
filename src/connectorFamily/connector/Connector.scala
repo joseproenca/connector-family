@@ -64,7 +64,7 @@ letter other
 		
 	override def toString: String =
 //      from.toString ++ sort.toString ++ to.toString
-      sort.toString ++ ": " ++ from.toString ++ " -> " ++ to.toString
+      sort.toString ++ ": " ++ PP(from) ++ " -> " ++ PP(to)
 		
 }
 

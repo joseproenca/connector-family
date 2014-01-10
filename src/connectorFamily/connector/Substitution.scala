@@ -38,13 +38,15 @@ class Substitution {
     Interface(i.get.map(apply(_)))
   
   def apply(lit:ILit) : ILit = lit match {
-	case _ => lit
-//	case IIndBool(ifTrue:Interface, ifFalse:Interface, b:Val) 
-//	case IIndNat(ifZero:Interface, pred:VVar, predT: IVar, ifSucc:Interface, n:Val)
-//	case INat(n:Int)
-//	case IDual(i:ILit)
-//	case v:IVar
+//	case _ => lit
+	case INat(n) => lit
+	case IDual(lit) => IDual(apply(lit))
+	case IIndBool(iTrue, iFalse, bool) => IIndBool(apply(iTrue),apply(iFalse),apply(bool))
+	case IIndNat(iZero, vvar, ivar, iSucc, nat) =>
+	  IIndNat(apply(iZero),vvar,ivar,(this-vvar).apply(iSucc),apply(nat))
+	case v:IVar => v
   }
+
 
   def apply(t:CType): CType = t match {
   	case IPair(left,right) => IPair(apply(left),apply(right)) 
@@ -83,9 +85,12 @@ object Substitution {
  */
 class ISubst {
 //  val vars = Map[IVar,ILit]()
-	val vars = List[(IVar,ILit)]()
+	val vars = List[(IVar,Interface)]()
 	val bound = Set[IVar]()
   
+  override def toString = 
+    vars.map(x => " + "+PP(x._1)+" -> "+PP(x._2)).mkString("\n") //+
+//  	" + bounded: "+bound.mkString("{",",","}")
   
   def -(v:IVar) = ISubst(vars,bound+v)
 
@@ -99,21 +104,22 @@ class ISubst {
    * If the variable is found, continue to apply the substitution to the new interface,
    * but ignoring the substitutions already past.
    */  	
-  private def replace(v:IVar): ILit =
+  private def replace(v:IVar): Interface =
   	if (bound contains v) v else replace(v,vars)
   	
-  private def replace(v:IVar,vars2:List[(IVar,ILit)]): ILit = vars2 match {
+  private def replace(v:IVar,vars2:List[(IVar,Interface)]): Interface = vars2 match {
   	case Nil => v
   	case (iv,il)::rest =>
+//  	  	println("is "+PP(v)+"["+v+"] equals to "+PP(iv)+"["+iv+"]? - "+(v==iv))
   		if (v==iv)
-  			ISubst(rest,bound).apply(il) // chose il and continue substitution with the rest of the substitutions
-			else replace(v,rest) 
+  			ISubst(rest,bound).apply(il) // choose il and continue substitution with the rest of the substitutions
+		else replace(v,rest) 
   }
   	  
 	/** apply a substitution of interface variables. */
-  def apply(l:ILit): ILit = l match {
+  def apply(l:ILit): Interface = l match {
     case INat(n) => l
-    case IDual(lit) => IDual(apply(lit))
+    case IDual(lit) => apply(lit).inv
     case IIndBool(iTrue, iFalse, b) =>
       IIndBool(apply(iTrue),apply(iFalse),b)
     case IIndNat(iZero, vvar, ivar, iSucc, n) =>
@@ -123,7 +129,13 @@ class ISubst {
   }
   
   /** apply a substitution of interface variables. */
-  def apply(i:Interface): Interface = Interface( i.get.map(apply(_)) )
+  def apply(i:Interface): Interface = { //Interface( i.get.map(apply(_)) )
+    var res = new Interface 
+    for (interf <- i.get.map(apply(_)))
+      res ++= interf
+    res
+  }
+      
   
   /** apply a substitution of interface variables. */
   def apply(c:CType): CType = c match {
@@ -136,7 +148,7 @@ class ISubst {
     case CEq(t1:CType,t2:CType)         => CEq(apply(t1),apply(t2)) 
     case IEq(t1:Interface,t2:Interface) => IEq(apply(t1),apply(t2))
     case VEq(t1:VType,t2:VType)         => c
-    case LEq(t1:ILit,t2:ILit)           => LEq(apply(t1),apply(t2))
+    case LEq(t1:ILit,t2:ILit)           => IEq(apply(t1),apply(t2))
   }
   
   def apply(t:FType) : FType = t match {
@@ -147,7 +159,7 @@ class ISubst {
 }
 
 object ISubst {
-  def apply(vl:(IVar,ILit)) = new ISubst { override val vars = List(vl) }
-  def apply(vs:List[(IVar,ILit)], bd:Set[IVar]) =
+  def apply(vl:(IVar,Interface)) = new ISubst { override val vars = List(vl) }
+  def apply(vs:List[(IVar,Interface)], bd:Set[IVar]) =
   	new ISubst {override val vars = vs; override val bound = bd }
 }

@@ -10,10 +10,8 @@ class TestConnector {
   
     // all should type&check
   
-    def pp(c:Conn) = {
-      val (t,cnst) = TypeCheck(c)
-      println(PP(c)+" : "+PP(t)+" | "+cnst.mkString("[",",","]"))
-    }
+    def pp(c:Conn) = println(PP.typeAndPrint(c))
+    
     println("--- testing new connectors ---")
     
     // examples from the paper
@@ -36,6 +34,8 @@ class TestConnector {
   
   @Test def TestBigConnector() {
 
+    println("--- testing larger connector ---")
+
   	val syncMerge = //new Context(
         (ab: Conn) =>
           dupl &
@@ -54,9 +54,30 @@ class TestConnector {
 //    )
   	
   	val lossyAB = syncMerge(lossy*lossy)
+  	println(PP.typeAndPrint(lossyAB))
+  	
 //  	assertEquals("Type-checking sync merge.",
 //  			(Interface(1),Interface(1)),
 //  			TypeCheck(lossyAB))
   }
+  
+  @Test def TestProduct() {
+    
+    println("--- testing inductive connector ---")
+
+    val nat = new VVar("nat")
+    val X = new IVar("X")
+    val iF = IIndNat(Interface(1), new VVar("x"), X, Interface(1,X), nat)
+    val tF = IPair(iF,iF)
+    
+    val y = new CVar("y")
+    
+    val conFifo = IndNat(nat, tF, fifo , y, fifo * y , nat)
+    val seqFifo = LambdaV(nat, VNat, conFifo)
+    
+    println(PP.typeAndPrint(seqFifo))
+    
+  }
+  
 
 }

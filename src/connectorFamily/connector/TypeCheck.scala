@@ -1,11 +1,16 @@
 package connectorFamily.connector
 
 object TypeCheck {
+  /**
+   * Type check with debug information:
+   */
   def apply(c:Conn) = {
   	val (typ,consts) = infer(TypeEnv(),c)
+//  	println("GOT TYPE+CONST\n"+PP(typ)+"\n - "+consts.map(PP(_)).mkString("\n - "))
   	val subs = unify(consts)
+//  	println("GOT SUBS\n"+subs)
   	val newtype = subs(typ)
-  	(newtype,consts)
+  	(typ,consts,subs,newtype)
   }
   
   def infer(env:TypeEnv, c:Conn) : (FType,List[Const]) = c match {
@@ -64,16 +69,18 @@ object TypeCheck {
       }
     //case class IndNat(vt:VVar, t:CType, c0:Conn, vs:CVar, cs:Conn, nat:Val) extends Conn
     case IndNat(vt, t, c0, vs, cs, nat) =>
-      if (!isFamily(env + (vt->VNat),t))
-        throw new TypeException("Type must be a family (not a connector) - "+t)
+//      if (!isFamily(env + (vt->VNat),t))
+//        throw new TypeException("Type must be a family (not a connector) - "+t)
       val vn = infer(env,nat)
       val (t0,cnst0) = infer(env,c0)
       val (ts,cnsts) = infer(env + (vt->VNat) + (vs->t),cs)
       (t0,ts,vn) match {
         // NOTE: terms for 0 and succ cannot be families...
       	case (t02:CType,ts2:CType,VNat) =>
+//      	  println("replacing "+PP(vt)+" by zero and succ(.).")
       	  val c1 = t02 === Substitution(vt -> VZero)(t)
       	  val c2 = ts2 === Substitution(vt -> VSucc(vt))(t)
+//      	  println("See result:\n"+PP(c1)+"\n"+PP(c2))
       	  (Substitution(vt -> nat)(t) , cnst0 ++ cnsts ++ List(c1,c2) )
       	case _ => throw new TypeException("IndNat expected 2 connectors and a nat. Instead "+t0+"/"+ts+"/"+vn+".")
       }
@@ -116,19 +123,33 @@ object TypeCheck {
   	case Nil => new ISubst
   	case CEq(t1,t2)::rest =>
 			val (i1,i2) = evaluate(t1)
+//			println("--- evaluated t1 - "+(PP(i1),PP(i2)))
 			val (i3,i4) = evaluate(t2)
+//			println("--- evaluated t2 - "+(PP(i3),PP(i4)))
 			unify(IEq(i1,i3)::IEq(i2,i4)::rest)
-		case IEq(i1,i2)::rest =>
+	case IEq(i1,i2)::rest =>
+//			println("--- "+PP(i1)+" <--> "+PP(i2))
 			val l1 = i1.get
 			val l2 = i2.get
-			if (l1.size != l2.size)
-				throw new TypeException("Failed to unify interfaces "+i1+" - "+i2)
-			unify((l1,l2).zipped.map(LEq(_,_)) ++ rest)
+			if (l1.size != l2.size) { // PROBLEM: adock solution (how to unify [x1 x2] with [1 -2 2]?
+			  if (l1.size == 1 && l1.head.isInstanceOf[IVar]) {
+			      val subst = ISubst(l1.head.asInstanceOf[IVar]->i2)
+			      unify(rest.map(subst(_))) ++ subst // ORDER is important.		
+			  }
+			  else if (l2.size == 1 && l2.head.isInstanceOf[IVar]) {
+			      val subst = ISubst(l2.head.asInstanceOf[IVar]->i1)
+			      unify(rest.map(subst(_))) ++ subst // ORDER is important.		
+			  }
+			  else
+				  throw new TypeException("Failed to unify interfaces "+i1+" - "+i2)
+			}
+			else
+			  unify((l1,l2).zipped.map(LEq(_,_)) ++ rest)
 		//now the algorithm for literals
-		case LEq(lit1,lit2)::rest if lit1 == lit2 => unify(rest)
-		case LEq(x:IVar,lit2)::rest /*if lit2 contains x*/ => 
-			val subst = ISubst(x->lit2)
-			unify(rest.map(subst(_))) ++ ISubst(x->lit2) // ORDER is important.				
+	case LEq(lit1,lit2)::rest if lit1 == lit2 => unify(rest)
+	case LEq(x:IVar,lit2)::rest /*if lit2 contains x*/ => 
+		val subst = ISubst(x->lit2)
+		unify(rest.map(subst(_))) ++ subst // ORDER is important.				
     case LEq(lit2,x:IVar)::rest /*if lit2 contains x*/ => 
       val subst = ISubst(x->lit2)
       unify(rest.map(subst(_))) ++ ISubst(x->lit2) // ORDER is important. 
@@ -136,7 +157,7 @@ object TypeCheck {
        unify(IEq(t1,t2)::IEq(f1,f2)::rest)
     case LEq(IIndNat(iZ1,vv1,iv1,iS1,n1),IIndNat(iZ2,vv2,iv2,iS2,n2))::rest if n1==n2 => // LATER: unify values!
        unify(IEq(iZ1,iZ2)::IEq(iS1,ISubst(iv2->iv1)(Substitution(vv2->vv1)(iS2)))::rest)
-    case x::_ => throw new TypeException("Failed to unify constraints "+x)
+    case x::_ => throw new TypeException("Failed to unify constraints "+PP(x))
   }
   
   /** Evaluate (simplify) a connector type (not a family). */
@@ -159,11 +180,14 @@ object TypeCheck {
     case IIndBool(_, iFalse, VFalse)::rest => evaluate(iFalse++Interface(rest))
     case IIndNat(iZero, _, _, _, VZero)::rest => evaluate(iZero++Interface(rest))
     case IIndNat(iZero, vv, iv, iSucc, VSucc(n))::rest =>
-    	val subs = Substitution(vv->n)++
-    	           Substitution(iv->IIndNat(iZero,vv,iv,iSucc,n))
-    	evaluate(subs(iSucc)++Interface(rest))
-    //case (v:Var)::rest =>
-    case _ => throw new TypeException("Could not evaluate interface "+i)
+    	val subs  = Substitution(vv->n)
+    	val isubs = ISubst(iv->IIndNat(iZero,vv,iv,iSucc,n))
+//    	println("Substituting "+PP(iv)+" by "+PP(IIndNat(iZero,vv,iv,iSucc,n))+" in "+PP(iSucc)+"\n got: "+PP(isubs(iSucc)))
+//    	println("Used substitution "+isubs)
+    	evaluate(isubs(subs(iSucc))++Interface(rest))
+    case (v:IVar)::rest => v // NOT sure...
+    case _ => i // NOT sure...
+    //throw new TypeException("Could not evaluate interface "+PP(i))
   }
 }
 

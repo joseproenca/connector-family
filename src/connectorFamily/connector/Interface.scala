@@ -21,8 +21,8 @@ class Interface {
    * Calculates this x other. Assumes both are normalised. 
    */
   def ++(other:Interface): Interface = (interf,other.get) match { 
-    case (Nil,x) => new Interface{interf = x}
-    case (x,Nil) => new Interface{interf = x}
+    case (Nil,x) => new Interface{ interf = x }
+    case (x,Nil) => new Interface{ interf = x }
     case (i, x::xs) =>
       val mrg = i.last ++ x
       if (mrg.isDefined)
@@ -69,6 +69,7 @@ object Interface {
 	def apply(a:ILit*): Interface = apply(a.toList)
 	
 	def apply(a:Iterable[ILit]): Interface = {
+//		println("adding interfaces "+a.mkString("--"))
 		if (a.isEmpty) new Interface
 		else {
 			var res = new Interface
@@ -92,31 +93,28 @@ sealed abstract class ILit {
 
 }
 case class INat(n:Int) extends ILit // POSITIVE!
-{   override def toString: String = n.toString
+{   //override def toString: String = n.toString
 	override def ++(other:ILit) = other match {
 		case INat(i2) => Some(INat(n+i2))
 		case _ => None
 	}
+	implicit def nat2intlit(n:Int) = INat(n)
 }
-case class IDual(i:ILit) extends ILit
-{   override def toString: String = i.toString+"*"
-	override def ++(other:ILit) = other match {
+case class IDual(i:ILit) extends ILit {
+  override def ++(other:ILit) = other match {
 		case IDual(i2) => (i++i2).map(IDual(_))
 		case _ => None
 	}
 }
 case class IIndBool(ifTrue:Interface, ifFalse:Interface, b:Val) extends ILit
-	{ override def toString: String = ifTrue+" <"+b+"> "+ifFalse }
 case class IIndNat(ifZero:Interface, pred:VVar, predT: IVar, ifSucc:Interface, n:Val) extends ILit
-	{ override def toString: String = "Ind("+ifZero+","+pred+"."+predT+"."+ifSucc+","+n+")" }
      class IVar(val name:String) extends ILit
-	{ override def toString: String = name }	
      
 /*
 case INat(n)
 case IDual(lit)
-case IIndBool(iTrue, iFalse, val)
-case IIndNat(iZero, vvar, ivar, iSucc, val)
+case IIndBool(iTrue, iFalse, bool)
+case IIndNat(iZero, vvar, ivar, iSucc, nat)
 case v:IVar
  */
 

@@ -8,7 +8,7 @@ case object VZero         extends Val
 case class  VSucc(v:Val)  extends Val
 case object VTrue             extends Val
 case object VFalse            extends Val
-     class  VVar(name:String) extends Val
+     class  VVar(val name:String) extends Val
 
 sealed abstract class VType
 { def ===(v:VType) = VEq(this,v) }
