@@ -147,9 +147,9 @@ class ISubst {
     case INat(n) => l
     case IDual(lit) => apply(lit).inv
     case IIndBool(iTrue, iFalse, b) =>
-      IIndBool(apply(iTrue),apply(iFalse),b)
+      IIndBool(apply(iTrue),apply(iFalse),apply(b))
     case IIndNat(iZero, vvar, ivar, iSucc, n) =>
-      IIndNat(apply(iZero),vvar,ivar,(this-ivar)(iSucc),n)
+      IIndNat(apply(iZero),vvar,ivar,(this-ivar)(iSucc),apply(n))
     case v:IVar => replace(v)   	
 //    	if (vars contains v) vars(v) else v
   }
@@ -181,6 +181,8 @@ class ISubst {
   def apply(t:FType) : FType = t match {
   	case c:CType => apply(c)
   	case Prod(v:CVar,tpar:CType,t:FType) => Prod(v,apply(tpar),apply(t))
+  	case ProdV(v:VVar,tpar:VType,t:FType) if (vals.map(_._1) contains v) =>
+  	  apply(t)
   	case ProdV(v:VVar,tpar:VType,t:FType) => ProdV(v,tpar,apply(t))
 //	case v:CTVar => v
   }
