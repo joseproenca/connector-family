@@ -61,13 +61,44 @@ object PP {
   	case v:VVar => v.name
   }
   
-  /** Calculates the type and returns a string with its type and intermediate results. */
+  
+    /** Calculates the type and returns a string with its type and intermediate results.
+     * If type checking fails an exception is raised. 
+     */
   def typeAndPrint(c:Conn): String = {
 	val (t,cnst,subs,newtyp) = TypeCheck(c)
 	PP(c)+"\n : "+PP(t)+
 		  "\n"+cnst.map(PP(_)).mkString(" | ","\n | ","")+
 		  (if (!subs.toString.isEmpty) "\n"+subs else "")+
 		  "\n : "+PP(newtyp)
+  }
+
+  
+  /** Calculates the type and returns a string with its type and intermediate results.
+   *  If type checking fails, it returns a string with the error message and intermediate results.  
+   */
+  def typeAndPrintWithErrors(c:Conn): String = {
+    var typ_consts: (FType,List[Const]) = null
+    var subs: ISubst = null
+    try{
+		typ_consts = TypeCheck.infer(TypeEnv(),c)
+		subs = TypeCheck.unify(typ_consts._2)
+		val newtype = subs(typ_consts._1)
+		PP(c)+"\n : "+PP(typ_consts._1)+
+		  "\n"+typ_consts._2.map(PP(_)).mkString(" | ","\n | ","")+
+		  (if (!subs.toString.isEmpty) "\n"+subs else "")+
+		  "\n : "+PP(newtype)
+    } catch {
+      case TypeException(s:String) =>
+        "Failed to typecheck "+PP(c)+".\n"+s+
+        (if (typ_consts != null)  
+          "\n : "+PP(typ_consts._1)+
+		  "\n"+typ_consts._2.map(PP(_)).mkString(" | ","\n | ","")
+		 else "") +
+		(if (subs!=null && !subs.toString.isEmpty) "\n"+subs else "")
+      case e: Exception => throw e
+
+    }
   }
 }
 

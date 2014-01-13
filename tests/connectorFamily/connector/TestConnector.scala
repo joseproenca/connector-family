@@ -61,22 +61,48 @@ class TestConnector {
 //  			TypeCheck(lossyAB))
   }
   
-  @Test def TestProduct() {
-    
-    println("--- testing inductive connector ---")
-
+  
+  private def auxTypes = {
     val nat = new VVar("nat")
-    val X = new IVar("X")
-    val iF = IIndNat(Interface(1), new VVar("x"), X, Interface(1,X), nat)
+    val x   = new VVar("x")
+    val xx  = new IVar("X")
+    val y   = new CVar("y")    
+    
+    val iF = IIndNat(Interface(1), x, xx, Interface(1,xx), nat)
     val tF = IPair(iF,iF)
     
-    val y = new CVar("y")
+    (nat,x,xx,y,tF)    
+  }
     
-    val conFifo = IndNat(nat, tF, fifo , y, fifo * y , nat)
-    val seqFifo = LambdaV(nat, VNat, conFifo)
+  
+  @Test def TestIndNSuccess() {
     
+    println("--- testing inductive connector ---")
+    
+    val (nat,_,_,y,tF) = auxTypes
+    
+    val seqFifoAux = IndNat(nat, tF, fifo , y, fifo * y , nat)
+    val seqFifo    = LambdaV(nat, VNat, seqFifoAux)
+    
+    // Should succeed
     println(PP.typeAndPrint(seqFifo))
+  }
+
+  @Test ( expected = classOf[TypeException] )
+  def TestIndNFail() {
+    println("--- testing ill-typed inductive connector ---")
+
+    val (nat,_,_,y,tF) = auxTypes
+
+    // Should fail because "y*fifo" is not "fifo*y".
+    val seqFifoAuxF = IndNat(nat, tF, fifo , y, y * fifo , nat)
+    val seqFifoF    = LambdaV(nat, VNat, seqFifoAuxF)
     
+    // fail and print the errors
+    println(PP.typeAndPrintWithErrors(seqFifoF))
+
+    // Should raise a TypeException
+    val fail = PP.typeAndPrint(seqFifoF)
   }
   
 
