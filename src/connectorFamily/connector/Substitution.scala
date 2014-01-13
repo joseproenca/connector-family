@@ -1,13 +1,18 @@
 package connectorFamily.connector
 
-/** a substitution from vars (VVar or CVar) to values (Val or Conn) */
+/** A substitution from vars (VVar or CVar or CTVar) to values (Val or Conn or FType).
+ *  NOTE: only VVar being used. CVar will be needed to evaluate connectors (only types
+ *  are being evaluated so far), and CTVar might be needed for unifying composed
+ *  families of connectors.
+ */
 class Substitution {
   val vals: Map[VVar,Val] = Map()
   val cons: Map[CVar,Conn] = Map()
+//  val ctyp: Map[CTVar,FType] = Map()
   
-  def -(v:VVar) = Substitution(vals-v,cons)
-
-  def -(v:CVar) = Substitution(vals,cons-v)  
+  def -(v:VVar)  = Substitution(vals-v,cons)//,ctyp)
+  def -(v:CVar)  = Substitution(vals,cons-v)//,ctyp)  
+//  def -(v:CTVar) = Substitution(vals,cons,ctyp-v)  
   
   /** Joins the maps with the substitutions */
   def ++(other:Substitution) =
@@ -57,6 +62,7 @@ class Substitution {
   	case Prod(v,tpar,t)  => Prod(v,tpar,(this - v).apply(t))
 	case ProdV(v,tpar,t) => ProdV(v,tpar,(this - v).apply(t))
 	case c:CType => apply(c)
+//	case v:CTVar => if (ctyp contains v) ctyp(v) else v
   }
 } 
 
@@ -64,19 +70,23 @@ class Substitution {
 object Substitution {
 //  def apply(v1v2:(CVar,Conn)) = new Substitution { override val cons = Map(v1v2) }
 //  def apply(v1v2:(VVar,Val)) = new Substitution { override val vals = Map(v1v2) }
+//  def apply(v1v2:(CTVar,FType)) = new Substitution { override val ctyp = Map(v1v2) }
 	
   // avoiding type lost by erasure...
   def apply(pair:(_,_)) = pair._1 match {
     case v1:CVar => pair._2 match {
-      case v2:Conn => new Substitution { override val cons = Map(v1->v2) }
+    case v2:Conn => new Substitution { override val cons = Map(v1->v2) }
     }
     case v1:VVar => pair._2 match {
-      case v2:Val => new Substitution { override val vals = Map(v1->v2) }
+    case v2:Val => new Substitution { override val vals = Map(v1->v2) }
     }
+//    case v1:CTVar => pair._2 match {
+//    case v2:FType => new Substitution { override val ctyp = Map(v1->v2) }
+//    }
   }
   
-  def apply(vs:Map[VVar,Val], cs:Map[CVar,Conn]) =
-  	new Substitution { override val vals = vs; override val cons = cs }
+  def apply(vs:Map[VVar,Val], cs:Map[CVar,Conn]) = //, ts:Map[CTVar,FType]) =
+  	new Substitution { override val vals = vs; override val cons = cs;} // override val ctyp = ts }
 }
 
 
@@ -86,17 +96,23 @@ object Substitution {
 class ISubst {
 //  val vars = Map[IVar,ILit]()
 	val vars = List[(IVar,Interface)]()
-	val bound = Set[IVar]()
+	val vals = List[(VVar,Val)]()
+	val boundi = Set[IVar]()
+	val boundv = Set[VVar]()
   
   override def toString = 
-    vars.map(x => " + "+PP(x._1)+" -> "+PP(x._2)).mkString("\n") //+
+    vars.map(x => " + "+PP(x._1)+" -> "+PP(x._2)).mkString("\n") +
+    (if (vars.isEmpty) "" else "\n") + 
+    vals.map(x => " + "+PP(x._1)+" -> "+PP(x._2)).mkString("\n") //+
 //  	" + bounded: "+bound.mkString("{",",","}")
   
-  def -(v:IVar) = ISubst(vars,bound+v)
+  def -(v:IVar) = ISubst(vars,vals,boundi+v,boundv)
+  def -(v:VVar) = ISubst(vars,vals,boundi,boundv+v)
 
   /** Joins the maps with the substitutions */
   def ++(other:ISubst) =
-  	ISubst(other.vars ++ vars, bound ++ other.bound) // ORDER of vars is important
+  	ISubst(other.vars++vars, other.vals ++ vals, boundi++other.boundi, boundv++other.boundv) // ORDER of vars is important
+  	// POSSIBLE PROBLEM: order of vals and vars is independent...
   
 
   /**
@@ -105,14 +121,24 @@ class ISubst {
    * but ignoring the substitutions already past.
    */  	
   private def replace(v:IVar): Interface =
-  	if (bound contains v) v else replace(v,vars)
+  	if (boundi contains v) v else replace(v,vars)
+  private def replace(v:VVar): Val =
+  	if (boundv contains v) v else replace(v,vals)
   	
   private def replace(v:IVar,vars2:List[(IVar,Interface)]): Interface = vars2 match {
   	case Nil => v
   	case (iv,il)::rest =>
 //  	  	println("is "+PP(v)+"["+v+"] equals to "+PP(iv)+"["+iv+"]? - "+(v==iv))
   		if (v==iv)
-  			ISubst(rest,bound).apply(il) // choose il and continue substitution with the rest of the substitutions
+  			ISubst(rest,vals,boundi,boundv).apply(il) // choose il and continue substitution with the rest of the substitutions
+		else replace(v,rest) 
+  }
+  private def replace(v:VVar,vals2:List[(VVar,Val)]): Val = vals2 match {
+  	case Nil => v
+  	case (vv,vl)::rest =>
+//  	  	println("is "+PP(v)+"["+v+"] equals to "+PP(iv)+"["+iv+"]? - "+(v==iv))
+  		if (v==vv)
+  			ISubst(vars,rest,boundi,boundv).apply(vl) // choose vl and continue substitution with the rest of the substitutions
 		else replace(v,rest) 
   }
   	  
@@ -149,17 +175,42 @@ class ISubst {
     case IEq(t1:Interface,t2:Interface) => IEq(apply(t1),apply(t2))
     case VEq(t1:VType,t2:VType)         => c
     case LEq(t1:ILit,t2:ILit)           => IEq(apply(t1),apply(t2))
+    case VLEq(t1:Val,t2:Val)            => VLEq(apply(t1),apply(t2))
   }
   
   def apply(t:FType) : FType = t match {
   	case c:CType => apply(c)
   	case Prod(v:CVar,tpar:CType,t:FType) => Prod(v,apply(tpar),apply(t))
   	case ProdV(v:VVar,tpar:VType,t:FType) => ProdV(v,tpar,apply(t))
+//	case v:CTVar => v
+  }
+  
+  def apply(v:Val) : Val = v match {
+  	case VZero => VZero
+	case VSucc(v) => VSucc(apply(v))
+	case VTrue => VTrue
+	case VFalse => VFalse
+	case v:VVar=> replace(v)
   }
 }
 
-object ISubst {
-  def apply(vl:(IVar,Interface)) = new ISubst { override val vars = List(vl) }
-  def apply(vs:List[(IVar,Interface)], bd:Set[IVar]) =
-  	new ISubst {override val vars = vs; override val bound = bd }
+object ISubst {  
+//  def apply(vr:(IVar,Interface)) = new ISubst { override val vars = List(vr) }
+//  def apply(vl:(VVar,Val)) = new ISubst { override val vals = List(vl) }
+
+    // avoiding type lost by erasure...
+  def apply(pair:(_,_)) = pair._1 match {
+    case v1:IVar => pair._2 match {
+    case v2:Interface => new ISubst{ override val vars = List((v1,v2)) }
+    case v2:ILit      => new ISubst{ override val vars = List((v1,Interface(v2))) }
+    }
+    case v1:VVar => pair._2 match {
+    case v2:Val => new ISubst{ override val vals = List((v1,v2)) }
+    }
+  }
+
+  
+  def apply(vi:List[(IVar,Interface)], vv:List[(VVar,Val)], bdi:Set[IVar], bdv:Set[VVar]) =
+  	new ISubst {override val vars = vi; override val vals = vv;
+  			    override val boundi = bdi; override val boundv = bdv}
 }

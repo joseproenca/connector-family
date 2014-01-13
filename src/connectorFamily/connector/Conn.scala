@@ -35,6 +35,7 @@ case class CPair(left:CType, right:CType) extends CType
 sealed abstract class FType
 case class Prod(v:CVar,tpar:CType,t:FType) extends FType
 case class ProdV(v:VVar,tpar:VType,t:FType) extends FType
+//class      CTVar(val name:String) extends FType
 	
 
 

@@ -81,11 +81,11 @@ class TestConnector {
     
     val (nat,_,_,y,tF) = auxTypes
     
-    val seqFifoAux = IndNat(nat, tF, fifo , y, fifo * y , nat)
-    val seqFifo    = LambdaV(nat, VNat, seqFifoAux)
+    val parFifoAux = IndNat(nat, tF, fifo , y, fifo * y , nat)
+    val parFifo    = LambdaV(nat, VNat, parFifoAux)
     
     // Should succeed
-    println(PP.typeAndPrint(seqFifo))
+    println(PP.typeAndPrint(parFifo))
   }
 
   @Test ( expected = classOf[TypeException] )
@@ -95,15 +95,36 @@ class TestConnector {
     val (nat,_,_,y,tF) = auxTypes
 
     // Should fail because "y*fifo" is not "fifo*y".
-    val seqFifoAuxF = IndNat(nat, tF, fifo , y, y * fifo , nat)
-    val seqFifoF    = LambdaV(nat, VNat, seqFifoAuxF)
+    val parFifoAuxF = IndNat(nat, tF, fifo , y, y * fifo , nat)
+    val parFifoF    = LambdaV(nat, VNat, parFifoAuxF)
     
     // fail and print the errors
-    println(PP.typeAndPrintWithErrors(seqFifoF))
+    println(PP.typeAndPrintWithErrors(parFifoF))
 
     // Should raise a TypeException
-    val fail = PP.typeAndPrint(seqFifoF)
+    val fail = PP.typeAndPrint(parFifoF)
   }
   
+  @Test //( expected = classOf[TypeException] )
+  def TestProdComp() {
+    println("--- testing composition of connector families ---")
+
+    val (nat1,_,_,y1,tF1) = auxTypes
+    val (nat2,_,_,y2,tF2) = auxTypes
+
+    val parFifoAuxF1 = IndNat(nat1, tF1, fifo , y1, fifo * y1, nat1)
+    val parFifoF1    = LambdaV(nat1, VNat, parFifoAuxF1)
+
+    val parFifoAuxF2 = IndNat(nat2, tF2, fifo , y2, fifo * y2, nat2)
+    val parFifoF2    = LambdaV(nat2, VNat, parFifoAuxF2)
+    
+    val comb = Seq(parFifoF1,parFifoF2)
+
+    // fail and print the errors
+    println(PP.typeAndPrintWithErrors(comb))
+
+    // Should raise a TypeException
+    val fail = PP.typeAndPrint(comb)
+  }
 
 }

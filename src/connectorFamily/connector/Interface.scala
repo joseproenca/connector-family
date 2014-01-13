@@ -108,7 +108,7 @@ case class IDual(i:ILit) extends ILit {
 }
 case class IIndBool(ifTrue:Interface, ifFalse:Interface, b:Val) extends ILit
 case class IIndNat(ifZero:Interface, pred:VVar, predT: IVar, ifSucc:Interface, n:Val) extends ILit
-     class IVar(val name:String) extends ILit
+class      IVar(val name:String) extends ILit
      
 /*
 case INat(n)

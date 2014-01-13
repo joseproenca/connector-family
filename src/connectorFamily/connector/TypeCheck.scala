@@ -26,7 +26,11 @@ object TypeCheck {
       val (t2,ct2) = infer(env,c2,err)
       (t1,t2) match {
         case (tt1:CType,tt2:CType) => (CPair(tt1,tt2), ct1 ++ ct2)
-        case _ => err.inference.error(s"Tense product only defined for connectors - ${PP(t1)} == ${PP(t2)}") 
+        case (tt1:FType,tt2:FType) =>
+          (fpar(tt1,tt2),ct1++ct2)
+//          val x = new CTVar("X-fpar")
+//          (x, ct1 ++ ct2 ++ List(x === fpar(tt1,tt2)) // need to add fpar, const+unification of FTypes
+        case _ => err.inference.error(s"Tense product undefined for given types - ${PP(t1)} * ${PP(t2)}") 
       }       
     case Seq(c1,c2) =>
       val (t1,ct1) = infer(env,c1,err)
@@ -37,7 +41,10 @@ object TypeCheck {
         	val (x2a,x2b) = (new IVar("x2a"),new IVar("x2b"))
         	(IPair(x1a,x2b), ct1 ++ ct2 ++
     		  List(tt1 === IPair(x1a,x1b), tt2 === IPair(x2a,x2b), x1b === x2a))
-        case _ => err.inference.error(s"Sequence only defined for connectors - ${PP(t1)} == ${PP(t2)}")
+        case (tt1:FType,tt2:FType) =>
+//          println(s"!!! ${PP(right(tt1))} == ${PP(left(tt2))}")
+    	  (fseq(tt1,tt2),ct1++ct2++List(right(tt1) === left(tt2)))
+        case _ => err.inference.error(s"Sequence undifined for given types - ${PP(t1)} ; ${PP(t2)}")
       }
     case Lambda(v,tpar,c) =>
       val (t,ct) = infer(env + (v->tpar), c,err)
@@ -124,6 +131,32 @@ object TypeCheck {
   	case _ => false
   } 
   
+  private def fpar(t1:FType,t2:FType): FType = (t1,t2) match {
+    case (Prod(a,b,c),_) => Prod(a,b,fpar(c,t2)) 
+    case (ProdV(a,b,c),_) => ProdV(a,b,fpar(c,t2))
+    case (_,Prod(a,b,c)) => Prod(a,b,fpar(c,t1))
+    case (_,ProdV(a,b,c)) => ProdV(a,b,fpar(c,t1))
+    case (a:CType,b:CType) => CPair(a,b)
+  }
+  private def fseq(t1:FType,t2:FType): FType = (t1,t2) match {
+    case (Prod(a,b,c),_) => Prod(a,b,fseq(c,t2)) 
+    case (ProdV(a,b,c),_) => ProdV(a,b,fseq(c,t2))
+    case (_,Prod(a,b,c)) => Prod(a,b,fseq(c,t1))
+    case (_,ProdV(a,b,c)) => ProdV(a,b,fseq(c,t1))
+    case (a:CType,b:CType) => IPair(right(a),left(b))
+  }
+  private def left(t:FType): Interface = t match {
+    case IPair(l,_)   => l
+    case CPair(l,r)   => left(l) ++ left(r)
+    case Prod(_,_,t)  => left(t)
+    case ProdV(_,_,t) => left(t)
+  }
+  private def right(t:FType): Interface = t match {
+    case IPair(_,r)   => r
+    case CPair(l,r)   => right(l) ++ right(r)
+    case Prod(_,_,t)  => right(t)
+    case ProdV(_,_,t) => right(t)
+  }
   
   /** Unify constraints */
   def unify(cs: List[Const]): ISubst = unify(cs,new ErrorStack)
@@ -140,74 +173,66 @@ object TypeCheck {
     cs match {
  
   	case Nil => new ISubst
+  	//-- For connector types --
   	case CEq(t1,t2)::rest =>
-			val (i1,i2) = evaluate(t1)
-//			println("--- evaluated t1 - "+(PP(i1),PP(i2)))
-			val (i3,i4) = evaluate(t2)
-//			println("--- evaluated t2 - "+(PP(i3),PP(i4)))
-			unify(IEq(i1,i3)::IEq(i2,i4)::rest,err)
+		val (i1,i2) = Eval.evaluate(t1)
+//		println("--- evaluated t1 - "+(PP(i1),PP(i2)))
+		val (i3,i4) = Eval.evaluate(t2)
+//		println("--- evaluated t2 - "+(PP(i3),PP(i4)))
+		unify(IEq(i1,i3)::IEq(i2,i4)::rest,err)
+//  	case FEq(t1:CType,t2:CType)::rest => unify(CEq(t1,t2)::rest,err)
+//  	case FEq(t1:CType,t2:CType)::rest => err.unification.error("not yet...")
+  	  // val p1 = Eval.evaluate(t1)
+  	  // val p2 = Eval.evaluate(t2)
+  	  
+	//-- For interfaces --
 	case IEq(i1,i2)::rest =>
-//			println("--- "+PP(i1)+" <--> "+PP(i2))
-			val l1 = i1.get
-			val l2 = i2.get
-			if (l1.size != l2.size) { // PROBLEM: adock solution (how to unify [x1 x2] with [1 -2 2]?
-			  if (l1.size == 1 && l1.head.isInstanceOf[IVar]) {
-			      val subst = ISubst(l1.head.asInstanceOf[IVar]->i2)
-			      unify(rest.map(subst(_)),err) ++ subst // ORDER is important.		
-			  }
-			  else if (l2.size == 1 && l2.head.isInstanceOf[IVar]) {
-			      val subst = ISubst(l2.head.asInstanceOf[IVar]->i1)
-			      unify(rest.map(subst(_)),err) ++ subst // ORDER is important.		
-			  }
-			  else
-				  err.unification.error("Failed to unify interfaces.")
-			}
-			else
-			  unify((l1,l2).zipped.map(LEq(_,_)) ++ rest,err)
-		//now the algorithm for literals
+//		println("--- "+PP(i1)+" <--> "+PP(i2))
+		val l1 = i1.get
+		val l2 = i2.get
+		if (l1.size != l2.size) { // PROBLEM: ad-hoc solution (how to unify [x1 x2] with [1 -2 2]?)
+		  if (l1.size == 1 && l1.head.isInstanceOf[IVar]) {
+		      val subst = ISubst(l1.head.asInstanceOf[IVar]->i2)
+		      unify(rest.map(subst(_)),err) ++ subst // ORDER is important.		
+		  }
+		  else if (l2.size == 1 && l2.head.isInstanceOf[IVar]) {
+		      val subst = ISubst(l2.head.asInstanceOf[IVar]->i1)
+		      unify(rest.map(subst(_)),err) ++ subst // ORDER is important.		
+		  }
+		  else
+			  err.unification.error("Failed to unify interfaces.")
+		}
+		else
+		  unify((l1,l2).zipped.map(LEq(_,_)) ++ rest,err)
+	//-- For literals --
 	case LEq(lit1,lit2)::rest if lit1 == lit2 => unify(rest,err)
 	case LEq(x:IVar,lit2)::rest /*if lit2 contains x*/ => 
 		val subst = ISubst(x->lit2)
 		unify(rest.map(subst(_)),err) ++ subst // ORDER is important.				
     case LEq(lit2,x:IVar)::rest /*if lit2 contains x*/ => 
       val subst = ISubst(x->lit2)
-      unify(rest.map(subst(_)),err) ++ ISubst(x->lit2) // ORDER is important. 
+      unify(rest.map(subst(_)),err) ++ subst // ORDER is important. 
     case LEq(IIndBool(t1,f1,b1),IIndBool(t2,f2,b2))::rest if b1==b2 => // LATER: unify values!
        unify(IEq(t1,t2)::IEq(f1,f2)::rest,err)
     case LEq(IIndNat(iZ1,vv1,iv1,iS1,n1),IIndNat(iZ2,vv2,iv2,iS2,n2))::rest if n1==n2 => // LATER: unify values!
        unify(IEq(iZ1,iZ2)::IEq(iS1,ISubst(iv2->iv1)(Substitution(vv2->vv1)(iS2)))::rest,err)
+    case LEq(IIndNat(iZ1,vv1,iv1,iS1,n1),IIndNat(iZ2,vv2,iv2,iS2,n2))::rest => // UNIFYING values
+       unify(IEq(iZ1,iZ2)::IEq(iS1,ISubst(iv2->iv1)(Substitution(vv2->vv1)(iS2)))::VLEq(n1,n2)::rest,err)
+	//-- For value types --
+	case VEq(vt1,vt2)::rest if vt1 == vt2 => unify(rest,err)
+    //-- For values --
+	case VLEq(t1,t2)::rest if t1 == t2 => unify(rest,err)
+	case VLEq(x:VVar,t2)::rest =>
+	  val subst = ISubst(x->t2)
+	  unify(rest.map(subst(_)),err) ++ subst // ORDER is important.
+	case VLEq(t1,x:VVar)::rest =>
+	  val subst = ISubst(x->t1)
+	  unify(rest.map(subst(_)),err) ++ subst // ORDER is important.
+	case VLEq(VSucc(v1),VSucc(v2))::rest =>
+	  unify(VLEq(v1,v2)::rest,err)	
+	//-- Fail otherwise --
     case x::_ => err.unification.error("Failed to unify constraints") //+PP(x))
   }}
-  
-  /** Evaluate (simplify) a connector type (not a family). */
-  def evaluate(t:CType): (Interface,Interface) = t match {
-    case IPair(l,r) => (evaluate(l),evaluate(r))
-    case CPair(l,r) => 
-      val (l1,l2) = evaluate(l)
-      val (r1,r2) = evaluate(r)
-    	(evaluate(l1++r1), evaluate(l2++r2))
-  }
-  
-  /** Evaluate (simplify) an interface. */
-  def evaluate(i:Interface) : Interface = i.get match {
-  	case Nil => i
-    case INat(n)::rest => Interface(INat(n)) ++ evaluate(Interface(rest))
-    case IDual(lit)::rest =>
-    	val ev = evaluate(Interface(lit))    	
-    	ev.inv ++ evaluate(Interface(rest)) 
-    case IIndBool(iTrue, _ , VTrue) ::rest => evaluate(iTrue ++Interface(rest))
-    case IIndBool(_, iFalse, VFalse)::rest => evaluate(iFalse++Interface(rest))
-    case IIndNat(iZero, _, _, _, VZero)::rest => evaluate(iZero++Interface(rest))
-    case IIndNat(iZero, vv, iv, iSucc, VSucc(n))::rest =>
-    	val subs  = Substitution(vv->n)
-    	val isubs = ISubst(iv->IIndNat(iZero,vv,iv,iSucc,n))
-//    	println("Substituting "+PP(iv)+" by "+PP(IIndNat(iZero,vv,iv,iSucc,n))+" in "+PP(iSucc)+"\n got: "+PP(isubs(iSucc)))
-//    	println("Used substitution "+isubs)
-    	evaluate(isubs(subs(iSucc))++Interface(rest))
-    case (v:IVar)::rest => v // NOT sure...
-    case _ => i // NOT sure...
-    //throw new TypeException("Could not evaluate interface "+PP(i))
-  }
 }
 
 /**
@@ -215,9 +240,11 @@ object TypeCheck {
  */
 sealed abstract class Const
 case class CEq(t1:CType,t2:CType) extends Const
+//case class FEq(t1:FType,t2:FType) extends Const
 case class IEq(t1:Interface,t2:Interface) extends Const
-case class VEq(t1:VType,t2:VType) extends Const
 case class LEq(t1:ILit,t2:ILit) extends Const
+case class VEq(t1:VType,t2:VType) extends Const
+case class VLEq(t1:Val,t2:Val) extends Const
 
 
 /**

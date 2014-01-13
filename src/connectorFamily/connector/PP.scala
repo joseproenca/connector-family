@@ -17,7 +17,7 @@ object PP {
     case IndNat(vt:VVar, t:CType, c0:Conn, vs:CVar, cs:Conn, nat:Val) =>
       "IndN("+apply(vt)+"."+apply(t)+","+apply(c0)+","+apply(vt)+"."+apply(vs)+"."+apply(cs)+","+apply(nat)+")"
     case CPrim(t,n) => n//+":"+apply(t)
-    case v:CVar => v.name
+    case v:CVar => v.name+uid(v)
   }
   
   def apply(t:FType): String = t match {
@@ -25,6 +25,7 @@ object PP {
     case ProdV(v:VVar,tpar:VType,t:FType) => "Pi["+apply(v)+":"+tpar+"] "+apply(t)
     case IPair(left:Interface,right:Interface) => "("+apply(left)+","+apply(right)+")"
     case CPair(left:CType, right:CType) => apply(left) +" * "+apply(right)
+//    case v:CTVar => v.name
   }
   
   def apply(i:Interface) : String = i.get match {
@@ -38,7 +39,7 @@ object PP {
     case IDual(i) => "-"+apply(i)
     case IIndBool(a,b,c) => "IndB("+apply(a)+","+apply(b)+","+apply(c)+")"
     case IIndNat(a,b,c,d,e) => "IndN("+apply(a)+","+apply(b)+"."+apply(c)+"."+apply(d)+","+apply(e)+")"
-    case v:IVar => v.name
+    case v:IVar => v.name+uid(v)
   }
   
   def apply(c:Const) : String = c match {
@@ -46,6 +47,7 @@ object PP {
 	case IEq(t1:Interface,t2:Interface) => PP(t1)+" == "+PP(t2)
 	case VEq(t1:VType,t2:VType) => PP(t1)+" == "+PP(t2)
 	case LEq(t1:ILit,t2:ILit) => PP(t1)+" == "+PP(t2)
+	case VLEq(t1:Val,t2:Val) => PP(t1)+" == "+PP(t2)
   }
   
   def apply(t:VType) : String = t match {
@@ -58,9 +60,11 @@ object PP {
   	case VSucc(v:Val) => apply(v)+"+1"
   	case VTrue => "true"
   	case VFalse => "false"
-  	case v:VVar => v.name
+  	case v:VVar => v.name+uid(v)
   }
   
+  
+  private def uid(v:Any): String = "_"+v.hashCode.toString.take(3)
   
     /** Calculates the type and returns a string with its type and intermediate results.
      * If type checking fails an exception is raised. 
