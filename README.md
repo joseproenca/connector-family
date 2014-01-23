@@ -122,7 +122,8 @@ Failed to typecheck
 Failed to unify constraints
 unifying: IndN(1,x.X.[1,X],nat) == 1
 unifying: [IndN(1,x.X.[1,X],nat),1] == [1,IndN(1,x.X.[1,X],nat)]
-unifying: (IndN(1,x.X.[1,X],nat),IndN(1,x.X.[1,X],nat)) * (1,1) == (IndN(1,x.X.[1,X],nat+1),IndN(1,x.X.[1,X],nat+1))
+unifying: (IndN(1,x.X.[1,X],nat),IndN(1,x.X.[1,X],nat)) * (1,1) ==
+          (IndN(1,x.X.[1,X],nat+1),IndN(1,x.X.[1,X],nat+1))
 unifying: 1 == 1
 unifying: 1 == 1
 unifying: 1 == 1
