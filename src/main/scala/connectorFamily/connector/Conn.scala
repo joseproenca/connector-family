@@ -4,6 +4,8 @@ package connectorFamily.connector
  * Second attempt to create a connector class,
  * where the derivation tree for typed connectors is built.
  */
+
+/** Connector definition */
 sealed abstract class Conn {
   def &(other:Conn) = Seq(this,other)
   def *(other:Conn) = Par(this,other)
@@ -21,6 +23,7 @@ case class CPrim(t:CType,name:String) extends Conn {
 }
 class CVar(val name:String) extends Conn
 
+/** Connector Type: either a pair of interfaces or ... */
 sealed abstract class CType extends FType { 
   def ===(c:CType) = CEq(this,c)
   def inv:CType = this match {
@@ -28,12 +31,18 @@ sealed abstract class CType extends FType {
     case CPair(l,r) => CPair(l.inv,r.inv)
   }
  }
+
+/** Type as a pair of interfaces: left -> right */
 case class IPair(left:Interface,right:Interface) extends CType
+/** type as a pair of component types: left * right  --- deprecate? */
 case class CPair(left:CType, right:CType) extends CType
 
 
+/** Family types - types for both connectors and families (lambdas)) */
 sealed abstract class FType
+/** Family type: variable is a connector */
 case class Prod(v:CVar,tpar:CType,t:FType) extends FType
+/** Family type: variable is a value (int or bool) */
 case class ProdV(v:VVar,tpar:VType,t:FType) extends FType
 //class      CTVar(val name:String) extends FType
 	

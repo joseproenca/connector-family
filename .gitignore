@@ -9,6 +9,14 @@ src_managed/
 project/boot/
 project/plugins/project/
 
-# Scala-IDE specific
+# Scala-IDE and Intellij specific 
 .scala_dependencies
-/bin
+bin
+.classpath
+.project
+.idea
+out
+.cache
+connectorfamilies-code.iml
+connectorfamilies-code.properties
+connectorfamilies-code.xml

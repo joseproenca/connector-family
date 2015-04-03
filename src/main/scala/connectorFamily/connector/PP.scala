@@ -64,7 +64,11 @@ object PP {
   }
   
   
-  private def uid(v:Any): String = "_"+v.hashCode.toString.take(3)
+  private def uid(v:Any): String = v match {
+    case x: IVar if x.name == "" => "_"
+    case x: VVar if x.name == "" => "_"
+    case _ => "_" + v.hashCode.toString.take(3)
+  }
   
     /** Calculates the type and returns a string with its type and intermediate results.
      * If type checking fails an exception is raised. 
@@ -75,6 +79,14 @@ object PP {
 		  "\n"+cnst.map(PP(_)).mkString(" | ","\n | ","")+
 		  (if (!subs.toString.isEmpty) "\n"+subs else "")+
 		  "\n : "+PP(newtyp)
+  }
+
+    /** Calculates the type and returns a string with its type and intermediate results.
+     * If type checking fails an exception is raised. 
+     */
+  def typeAndPrintSimple(c:Conn): String = {
+	val (t,cnst,subs,newtyp) = TypeCheck(c)
+	PP(c)+"\n : "+PP(newtyp)
   }
 
   

@@ -124,7 +124,7 @@ class ISubst {
   	if (boundi contains v) v else replace(v,vars)
   private def replace(v:VVar): Val =
   	if (boundv contains v) v else replace(v,vals)
-  	
+
   private def replace(v:IVar,vars2:List[(IVar,Interface)]): Interface = vars2 match {
   	case Nil => v
   	case (iv,il)::rest =>
@@ -141,15 +141,26 @@ class ISubst {
   			ISubst(vars,rest,boundi,boundv).apply(vl) // choose vl and continue substitution with the rest of the substitutions
 		else replace(v,rest) 
   }
-  	  
-	/** apply a substitution of interface variables. */
+
+
+  private def replaceIVar(v:IVar): IVar = replaceIVar(v,vars)
+  private def replaceIVar(v:IVar,vars2:List[(IVar,Interface)]): IVar = vars2 match {
+    case Nil => v
+//    case (`v`,il:IVar)::rest => il
+    case (`v`,il)::rest => new IVar("") // v will be an unused variable, so it needs no name
+    case _::rest => replaceIVar(v,rest)
+  }
+
+
+  /** apply a substitution of interface variables. */
   def apply(l:ILit): Interface = l match {
     case INat(n) => l
     case IDual(lit) => apply(lit).inv
     case IIndBool(iTrue, iFalse, b) =>
       IIndBool(apply(iTrue),apply(iFalse),apply(b))
     case IIndNat(iZero, vvar, ivar, iSucc, n) =>
-      IIndNat(apply(iZero),vvar,ivar,(this-ivar)(iSucc),apply(n))
+      //      IIndNat(apply(iZero),vvar,ivar,(this-ivar)(iSucc),apply(n))
+      IIndNat(apply(iZero),vvar,replaceIVar(ivar),apply(iSucc),apply(n))
     case v:IVar => replace(v)   	
 //    	if (vars contains v) vars(v) else v
   }

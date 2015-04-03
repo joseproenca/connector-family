@@ -65,7 +65,7 @@ object TypeCheck {
       val vt2 = infer(env,v,err) 
       t1 match {
         // NOTE: application only of connector parameters (no family nor value parameters)
-        case ProdV(vv,ttp1:VType,tt1) => (tt1, ct1 ++ List(ttp1 === vt2))
+        case ProdV(vv,ttp1:VType,tt1) => (Substitution(vv->v)(tt1), ct1 ++ List(ttp1 === vt2))
         case _ => err.inference.error(s"Application expected a value as parameter - ${PP(t1)} == ${PP(vt2)}") 
       }       
     case IndBool(vt, t, ct, cf, bool) =>
@@ -215,9 +215,16 @@ object TypeCheck {
     case LEq(IIndBool(t1,f1,b1),IIndBool(t2,f2,b2))::rest if b1==b2 => // LATER: unify values!
        unify(IEq(t1,t2)::IEq(f1,f2)::rest,err)
     case LEq(IIndNat(iZ1,vv1,iv1,iS1,n1),IIndNat(iZ2,vv2,iv2,iS2,n2))::rest if n1==n2 => // LATER: unify values!
-       unify(IEq(iZ1,iZ2)::IEq(iS1,ISubst(iv2->iv1)(Substitution(vv2->vv1)(iS2)))::rest,err)
+       unify(IEq(iZ1,iZ2)::
+         IEq(iS1,ISubst(iv2->iv1)(Substitution(vv2->vv1)(iS2)))::
+         IEq(iS2,ISubst(iv1->iv2)(Substitution(vv1->vv2)(iS1)))::rest
+            ,err)
     case LEq(IIndNat(iZ1,vv1,iv1,iS1,n1),IIndNat(iZ2,vv2,iv2,iS2,n2))::rest => // UNIFYING values
-       unify(IEq(iZ1,iZ2)::IEq(iS1,ISubst(iv2->iv1)(Substitution(vv2->vv1)(iS2)))::VLEq(n1,n2)::rest,err)
+       unify(IEq(iZ1,iZ2)::
+             IEq(iS1,ISubst(iv2->iv1)(Substitution(vv2->vv1)(iS2)))::
+             IEq(iS2,ISubst(iv1->iv2)(Substitution(vv1->vv2)(iS1)))::
+             VLEq(n1,n2)::rest
+            ,err)
 	//-- For value types --
 	case VEq(vt1,vt2)::rest if vt1 == vt2 => unify(rest,err)
     //-- For values --
