@@ -1,4 +1,4 @@
-Connector families
+Connector families [![Build Status](https://travis-ci.org/joseproenca/connector-family.svg?branch=master)](https://travis-ci.org/joseproenca/connector-family)
 ==================
 
 This project encodes in [Scala](http://www.scala-lang.org) how to specify and compose families of connectors, mixing the fields of exogenous coordination languages and software product lines.
